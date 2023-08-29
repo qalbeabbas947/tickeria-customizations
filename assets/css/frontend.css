@@ -1,0 +1,62 @@
+#tc-attendee-listing {
+  font-family: Arial, Helvetica, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+#tc-attendee-listing td, #customers th {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+#tc-attendee-listing tr:nth-child(even){background-color: #f2f2f2;}
+
+#tc-attendee-listing tr:hover {background-color: #ddd;}
+
+#tc-attendee-listing th {
+  padding-top: 12px;
+  padding-bottom: 12px;
+  text-align: left;
+  background-color: #02b5b1;
+  color: white;
+}
+.tc-front-area{
+	width: 90%;
+	margin: 20px auto;
+}
+
+.tc-front-container{
+	width: 100%;
+	margin: 20px auto;
+}
+
+.tc_order_attendee_failed{
+	background: red;
+    color: #FFFFFF;
+    border: 1px solid;
+    border-radius: 5px;
+    margin: 5px auto;
+    text-align: center;
+}
+
+.tc_order_attendee_success{
+	background: green;
+    color: #FFFFFF;
+    border: 1px solid;
+    border-radius: 5px;
+    margin: 5px auto;
+    text-align: center;
+}
+#btn_tc_cancel_attendees{cursor:pointer;}
+
+.tc-attendee-button {
+  background-color: #02b5b1; /* Green */
+  border: none;
+  color: white;
+  padding: 15px 32px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  cursor:pointer;
+}
