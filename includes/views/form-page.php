@@ -1,11 +1,4 @@
 <?php 
-
-if (!is_user_logged_in() ) {
-	wp_redirect ( site_url() );
-	exit;
-}
-else
-{
 	get_header(); 
 	global $wpdb;
 	$token 		= sanitize_text_field($_REQUEST['tctoken']);
@@ -123,5 +116,5 @@ else
 	} else {
 		echo '<div class="tc_order_attendee_failed">'.__('Invalid or expired token!', 'TC').'</div>';
 	}
-	get_footer(); ?>
-<?php } ?>
+	get_footer();
+?>

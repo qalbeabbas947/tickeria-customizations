@@ -1,23 +1,26 @@
 <?php 
-if (!is_user_logged_in() ) {
-	wp_redirect ( site_url() );
-	exit;
-}
-else
-{
 	get_header(); 
 	global $wpdb;
 	$token = sanitize_text_field($_REQUEST['tctoken']);
 	$_access =  $wpdb->get_row( $wpdb->prepare('select * from '.$wpdb->prefix.'tc_attendee_tokens where expiry_date > now() and token=%s', $token) );
+	
 	if( !empty($_access) ) {
 		$user_id = $_access->user_id;
+		$user_email = $_access->user_email;
 		$issue_date = $_access->issue_date;
 		$expiry_date = $_access->expiry_date;
-		$args = array(
-			'customer_id' => $user_id,
-			'limit' => -1, // to retrieve _all_ orders by this user
-		);
-		$orders = wc_get_orders($args);
+		if( intval($user_id) > 0 ) {
+			$args = array(
+				'customer_id' => $user_id,
+				'limit' => -1, // to retrieve _all_ orders by this user
+			);
+			$orders = wc_get_orders($args);
+		} else {
+			$query = new WC_Order_Query();
+			$query->set( 'customer', $user_email );
+			$orders = $query->get_orders();
+		}
+		
 	?>
 
     <div class="tc-front-container">
@@ -67,5 +70,4 @@ else
 	} else {
 		echo '<div class="tc_order_attendee_failed">'.__('Invalid or expired token!', 'TC').'</div>';
 	}
-	get_footer(); ?>
-<?php } ?>
+get_footer(); ?>

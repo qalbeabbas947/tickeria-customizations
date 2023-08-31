@@ -14,7 +14,8 @@
                     var data = {
                         order_id: 	aorder_id,
 						user_id: 	auser_id,
-                        action: 	'tc_customization_token_generator_admin'
+                        action: 	'tc_customization_token_generator_admin',
+                        time: new DateTime()
                     };
 
                     $.ajax({

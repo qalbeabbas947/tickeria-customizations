@@ -1,10 +1,5 @@
 <?php 
-if (!is_user_logged_in() ) {
-	wp_redirect ( site_url() );
-	exit;
-}
-else
-{
+
 	get_header(); 
 	global $wpdb;
 	$token 		= sanitize_text_field($_REQUEST['tctoken']);
@@ -87,7 +82,7 @@ else
 						<table>
 							<tr><td><img src="<?php echo get_the_post_thumbnail_url( $item->get_product_id(), 'post-thumbnail' );?>" width="90%"/></td></tr>
 							<tr><td><?php echo get_the_title($item->get_product_id());?></td></tr>
-							<tr><td><a href="<?php echo $temp_url;?>"><?php _e('Get Details', 'TC');?></a></td></tr>
+							<tr><td><a href="<?php echo $temp_url;?>"><?php _e('View / Edit Details', 'TC');?></a></td></tr>
 						</table>
 				   </div>
 						
@@ -108,5 +103,5 @@ else
 	} else {
 		echo '<div class="tc_order_attendee_failed">'.__('Invalid or expired token!', 'TC').'</div>';
 	}
-	get_footer(); ?>
-<?php } ?>
+	get_footer();
+?>

@@ -12,18 +12,18 @@
  */
 
 if( ! defined( 'ABSPATH' ) ) exit;
-ini_set('display_errors', 'On');
-error_reporting(E_ALL);
 
-register_activation_hook( __FILE__, 'activation' );
-function activation() {
+
+register_activation_hook( __FILE__, 'tc_activation' );
+function tc_activation() {
 
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'tc_attendee_tokens';
 	if($wpdb->get_var("show tables like '$table_name'") != $table_name) {
 		$sql = "CREATE TABLE " . $table_name . " (
 			`id` int(10) NOT NULL AUTO_INCREMENT,
-			`user_id` int(11) NOT NULL,
+			`user_id` int(11) NULL,
+			`user_email` varchar(255) NULL,
 			`token` varchar(50) NOT NULL,
 			`issue_date` datetime  NULL,
 			`expiry_date` datetime  NULL,
@@ -104,6 +104,12 @@ class Tickera_Customization {
         define( 'TC_TEXT_DOMAIN', 'TC' );
     }
 
+	function get_orders_by_billing_email($user_email) {
+		$query = new WC_Order_Query();
+		$query->set( 'customer', $user_email );
+		return $orders = $query->get_orders();
+	}
+
 	/**
      * Plugin Hooks
      */
@@ -113,45 +119,67 @@ class Tickera_Customization {
 		// Make your response and echo it.
 		$email_for_token 	= sanitize_text_field($_REQUEST['email_for_token']);
 		$user = get_user_by('email', $email_for_token);
+		$user_id = '0';
+		$user_email = '';
+		$is_billing_email = false;
+		if( $user ) {
+			$user_id = $user->ID;
+			$user_name = $user->user_login;
+			$user_email = $user->user_email;
+		} else {
+			$orders = $this->get_orders_by_billing_email($email_for_token);
+			if( count($orders) > 0 ) {
+				$user_email = $email_for_token;
+				$user_name = $orders[0]->get_billing_first_name().' '.$orders[0]->get_billing_last_name();
+				$is_billing_email = true;
+			}
+		}
+		
 		$token = '';
-		if($user) {
-			$_access 		=  $wpdb->get_results( $wpdb->prepare('select * from '.$wpdb->prefix.'tc_attendee_tokens where user_id=%d', $user->ID) );
+		if($user || $is_billing_email ) {
+			$_access 		=  $wpdb->get_results( $wpdb->prepare('select * from '.$wpdb->prefix.'tc_attendee_tokens where  (user_id=%d or user_email=%s)', $user_id , $user_email ) );
 			if( !empty($_access) && count($_access) > 0 ) {
 				if( time() >= strtotime( $_access[0]->expiry_date ) ) {
-					$token = md5(time() + $user->ID);
+					$token = md5(time() + $user_id);
 					$wpdb->update($wpdb->prefix.'tc_attendee_tokens',
 						[
 							'expiry_date' => date('Y-m-d H:i:s', strtotime('+1 Day')),
 							'token' => $token
 						], [ 'id'=> $_access[0]->id]
 					);	
-					$this->tc_send_token_gen_email($user, $token);
-					echo json_encode(['status'=>'success', 'message'=>'Email with the updated token is sent to your entered email address']);
+					$this->tc_send_token_gen_email($user_name, $user_email, $token);
+					echo json_encode(['status'=>'success', 'message'=>__('Your updated login link is sent to your Email address.', 'cs_ld_addon')]);
+					
 				} else {
 					$token = $_access[0]->token;
-					$this->tc_send_token_gen_email($user, $token);
-					echo json_encode(['status'=>'success', 'message'=>'Your token is already active. Email with the token is sent to your entered email address']);
+					$this->tc_send_token_gen_email($user_name, $user_email, $token);
+					echo json_encode(['status'=>'success', 'message'=>__('Your login link is already active. An Email with your current login link was sent to your email address.', 'cs_ld_addon')]);
 				}
 
 			} else {
-				$token = md5(time() . $user->ID);
-				$wpdb->insert($wpdb->prefix.'tc_attendee_tokens', [
-											'user_id' => $user->ID,
-											'token' => $token,
-											'issue_date' => date('Y-m-d H:i:s'),									
-											'expiry_date' => date('Y-m-d H:i:s', strtotime("+1 Day")),								
-										], ['%d', '%s', '%s', '%s'] );
-				$this->tc_send_token_gen_email($user, $token);
-				echo json_encode(['status'=>'success', 'message'=>'New token is generated and sent to your email address!']);
+				$token = md5(time() . $user_id);
+				// $wpdb->insert($wpdb->prefix.'tc_attendee_tokens', [
+				// 							'user_id' => $user_id,
+				// 							'user_email' => $user_email,
+				// 							'token' => $token,
+				// 							'issue_date' => date('Y-m-d H:i:s'),									
+				// 							'expiry_date' => 'date_add(now(),interval 1 day)',								
+				// 						], ['%d', '%s', '%s', '%s'] );
+				$sql_query = "insert into ".$wpdb->prefix."tc_attendee_tokens(user_id,user_email,token,issue_date,expiry_date) values('".$user_id."','".$user_email."','".$token."','".date('Y-m-d H:i:s')."','".date('Y-m-d H:i:s', strtotime('+1 Day'))."')";
+				$wpdb->query($sql_query);
+				$this->tc_send_token_gen_email($user_name, $user_email, $token);
+				echo json_encode(['status'=>'success', 'message'=>__('We have successfully sent a new login link to your email address.', 'cs_ld_addon')]);
 				
 			}
 		} else {
-			echo json_encode(['status'=>'failed', 'message'=>'Invalid email address!']);
+			echo json_encode(['status'=>'failed', 'message'=>__('The entered email does not exist for a Preferred Table.', 'cs_ld_addon')]);
 		}
 		exit;
 	}
 
-	function tc_send_token_gen_email($user, $token) {
+	function tc_send_token_gen_email($user_name, $user_email, $token) {
+
+		
 		$subject  = get_option('tc_token_generation_subject');
 		if(empty($subject)) {
 			$subject  = __('Round Table Token Generation', 'cs_ld_addon');
@@ -162,20 +190,17 @@ class Tickera_Customization {
 			$message  = __('<p>Dear [user_login],</p><p>Your token is generated successfully. Please, click <a href="[round_table_orders_link]">here</a> to view the available round table orders.</p><p>Thank You</p>', 'cs_ld_addon');
 		}
 		
-						
-		$user_name = $user->user_login;
-		
 		$tc_roundtable_main_page 	= get_option( 'tc_roundtable_main_page' );
 		$round_table_orders_link = get_permalink($tc_roundtable_main_page);
 		$round_table_orders_link = add_query_arg('tctoken', $token, $round_table_orders_link);
 
 		
-		$user = get_userdata($user->ID);
+		
 		$subject = str_replace(array(
 			'[user_login]',
 			'[round_table_orders_link]',
 		), array(
-			$user->user_login,
+			$user_name,
 			$round_table_orders_link,
 		), $subject);
 
@@ -183,7 +208,7 @@ class Tickera_Customization {
 			'[user_login]',
 			'[round_table_orders_link]',
 		), array(
-			$user->user_login,
+			$user_name,
 			$round_table_orders_link,
 		), $message);
 
@@ -203,7 +228,7 @@ class Tickera_Customization {
 		$headers[] = "From: {$site_name} <{$admin_email}>";
 		$headers[] = "Content-Type: text/html; charset=UTF-8"; 
 		
-		return wp_mail($user->user_email, $subject, $message, $headers);
+		return wp_mail($user_email, $subject, $message, $headers);
 
 	}
 
@@ -278,31 +303,75 @@ class Tickera_Customization {
 		add_action( 'woocommerce_product_options_general_product_data', array( $this, 'tc_add_custom_settings' ) );
 		add_action( 'woocommerce_process_product_meta', array( $this, 'tc_custom_settings_fields_save' ), 10, 1 );
 		
-		add_action ( 'init', array( $this, 'disable_attendee_email' ) );
+		//add_action ( 'init', array( $this, 'disable_attendee_email' ) );
 		
 		add_action('woocommerce_new_order', array( $this, 'action_woocommerce_new_order' ), 10, 2);
 		
 		// if(isset($_REQUEST['tcrun']) && $_REQUEST['tcrun'] == 'now') {
 		// 	add_action('init', array( $this, 'process_attendees_email' ), 10, 0);
 		// }
-		
+
 		add_action( 'tc_process_attendees_emails', array( $this, 'process_attendees_email' ) );
 		if ( ! wp_next_scheduled( 'tc_process_attendees_emails' ) ) {
 			wp_schedule_event( time(), 'daily', 'tc_process_attendees_emails' );
 		}
 		
 		add_shortcode( 'Ticket_Token_Generator', array( $this,'tc_token_generator') );
+
+		add_filter( 'tc_order_is_paid', array( $this,'tc_order_is_paid_callback'), 9999, 2 );
 	}
 	
+	function tc_order_is_paid_callback($order_is_paid, $order_id) {
+		
+		$order = wc_get_order($order_id);
+		
+		$is_round_table = 0;
+		foreach( $order->get_items( ['line_item'] ) as $item_id => $item ) {
+			$item_product_id = $item->get_product_id();
+			$is_round_table = get_post_meta( $item_product_id, '_is_round_table', true );
+			if( intval($is_round_table) == 1 ) {
+				$is_round_table = 1;
+			}
+		}
+
+		if( $is_round_table == 1 ) {
+			return false;
+		}
+		
+		return $order_is_paid;
+	}
+
 	function tc_customization_token_generator_admin() {
 		
 		global $wpdb;
 		// Make your response and echo it.
 		$order_id 	= sanitize_text_field($_REQUEST['order_id']);
 		$user_id 	= sanitize_text_field($_REQUEST['user_id']);
-		$user = get_userdata($user_id);
+
+		$user_email = '';
+		$user_name = '';
+		$is_billing_email = false;
+		if( intval($user_id) > 0 ) {
+			$user 			= get_userdata($user_id);
+			if( $user ) {
+				$user_id 		= $user->ID;
+				$user_name 		= $user->user_login;
+				$user_email 	= $user->user_email;
+			}
+		} 
+		
+		if(empty($user_email)) {
+			$order = wc_get_order($order_id);
+			if( $order ) {
+				$user_email = $order->get_billing_email();
+				$user_name = $order->get_billing_first_name().' '.$order->get_billing_last_name();
+				$is_billing_email = true;
+			}
+		}
+
+		
 		$token = '';
-		$_access 		=  $wpdb->get_results( $wpdb->prepare('select * from '.$wpdb->prefix.'tc_attendee_tokens where user_id=%d', $user_id) );
+		$_access 		=  $wpdb->get_results( $wpdb->prepare('select * from '.$wpdb->prefix.'tc_attendee_tokens where  (user_id=%d or user_email=%s)', $user_id, $user_email) );
 		if( !empty($_access) && count($_access) > 0 ) {
 			if( time() >= strtotime( $_access[0]->expiry_date ) ) {
 				$token = md5(time() + $user_id);
@@ -312,32 +381,33 @@ class Tickera_Customization {
 						'token' => $token
 					], [ 'id'=> $_access[0]->id]
 				);	
-				$this->tc_send_token_gen_email($user, $token);
-				echo json_encode(['status'=>'success', 'message'=>'Email with the updated token is sent to your email address']);
+				$this->tc_send_token_gen_email($user_name, $user_email, $token);
+				echo json_encode(['status'=>'success', 'message'=>'Your updated login link is sent to your Email address.']);
 			} else {
 				$token = $_access[0]->token;
-				$this->tc_send_token_gen_email($user, $token);
-				echo json_encode(['status'=>'success', 'message'=>'Your token is already active. Email with the token is sent to your email address']);
+				$this->tc_send_token_gen_email($user_name, $user_email, $token);
+				echo json_encode(['status'=>'success', 'message'=>'Your login link is already active. An Email with your current login link was sent to your email address.']);
 			}
 
 		} else {
 			$token = md5(time() . $user_id);
-			$wpdb->insert($wpdb->prefix.'tc_attendee_tokens', [
-										'user_id' => $user_id,
-										'token' => $token,
-										'issue_date' => date('Y-m-d H:i:s'),									
-										'expiry_date' => date('Y-m-d H:i:s', strtotime("+1 Day")),								
-									], ['%d', '%s', '%s', '%s'] );
-			$this->tc_send_token_gen_email($user, $token);
-			echo json_encode(['status'=>'success', 'message'=>'New token is generated and sent to your email address!']);
+			// $wpdb->insert($wpdb->prefix.'tc_attendee_tokens', [
+			// 							'user_id' => $user_id,
+			// 							'user_email'=>$user_email,
+			// 							'token' => $token,
+			// 							'issue_date' => date('Y-m-d H:i:s'),									
+			// 							'expiry_date' => date('Y-m-d H:i:s', strtotime("+1 Day"))								
+			// 						], ['%d', '%s', '%s', '%s'] );
+			$sql_query = "insert into ".$wpdb->prefix."tc_attendee_tokens(user_id,user_email,token,issue_date,expiry_date) values('".$user_id."','".$user_email."','".$token."','".date('Y-m-d H:i:s')."','".date('Y-m-d H:i:s', strtotime('+1 Day'))."')";
+			$wpdb->query($sql_query);
+			$this->tc_send_token_gen_email($user_name, $user_email, $token);
+			echo json_encode(['status'=>'success', 'message'=>'We have successfully sent a new login link to your email address.']);
 			
 		}
 		exit;
 	}
 	
 	function tc_token_generator( $atts ) {
-	
-	
 
 		ob_start();
 		$page_template = dirname( __FILE__ ) . '/includes/views/token-generator.php'; 
@@ -359,17 +429,20 @@ class Tickera_Customization {
 		
 		if( $is_round_table == 1 ) {
 			global $wpdb;
-			$_access =  $wpdb->get_results( $wpdb->prepare('select * from '.$wpdb->prefix.'tc_attendee_tokens where expiry_date>now() and user_id=%d', $order->get_user_id()) );
+			$_access =  $wpdb->get_results( $wpdb->prepare('select * from '.$wpdb->prefix.'tc_attendee_tokens where expiry_date>now() and (user_id=%d or user_email=%s)', $order->get_user_id(), $order->get_billing_email() ) );
 			if( !empty($_access) && count($_access) > 0 ) {
 				$token = $_access[0]->token;
 			} else {
 				$token = md5(time() . $order->get_user_id());
-				$wpdb->insert($wpdb->prefix.'tc_attendee_tokens', [
-											'user_id' => $order->get_user_id(),
-											'token' => $token,
-											'issue_date' => date('Y-m-d H:i:s'),									
-											'expiry_date' => date('Y-m-d H:i:s', strtotime("+1 Day")),								
-										], ['%d', '%s', '%s', '%s'] );
+				// $wpdb->insert($wpdb->prefix.'tc_attendee_tokens', [
+				// 							'user_id' => $order->get_user_id(),
+				// 							'user_email' => $order->get_billing_email(),
+				// 							'token' => $token,
+				// 							'issue_date' => date('Y-m-d H:i:s'),									
+				// 							'expiry_date' => date('Y-m-d H:i:s', strtotime("+1 Day")),								
+				// 						], ['%d', '%s', '%s', '%s'] );
+				$sql_query = "insert into ".$wpdb->prefix."tc_attendee_tokens(user_id,user_email,token,issue_date,expiry_date) values('".$order->get_user_id()."','".$order->get_billing_email()."','".$token."','".date('Y-m-d H:i:s')."','".date('Y-m-d H:i:s', strtotime('+1 Day'))."')";
+				$wpdb->query($sql_query);
 				
 				
 			}
@@ -384,7 +457,7 @@ class Tickera_Customization {
 				$message  = __('<p>Dear [user_name],</p><p>Your have successfully purchase a round table. Please, open the <a href="[order_attendees_link]">order attendees</a> page to view and update the attendees detail. Click <a href="[round_table_orders_link]">here</a> to view the available round table orders.</p><p>Thank You</p>', 'cs_ld_addon');
 			}
 			
-			$user_name = $user->user_login;
+			
 			$order_date = $order->get_date_created();
 			
 			$tc_roundtable_main_page 	= get_option( 'tc_roundtable_main_page' );
@@ -396,8 +469,15 @@ class Tickera_Customization {
 			$order_attendees_link = add_query_arg('tctoken', $token, $order_attendees_link);
 			$order_attendees_link = add_query_arg('oid', $order_id, $order_attendees_link);
 	
-			
-			$user = get_userdata($order->get_user_id());
+			if(intval($order->get_user_id()) > 0) {
+				$user = get_userdata($order->get_user_id());
+				$user_name = $user->user_login;
+				$user_email = $user->user_email;
+			} else {
+				$user_name = $order->get_billing_first_name().' '.$order->get_billing_last_name();
+				$user_email = $order->get_billing_email();
+			}
+
 			$subject = str_replace(array(
 				'[user_name]',
 				'[order_attendees_link]',
@@ -405,7 +485,7 @@ class Tickera_Customization {
 				'[order_id]',
 				'[order_date]'
 			), array(
-				$user->user_login,
+				$user_name,
 				$order_attendees_link,
 				$round_table_orders_link,
 				$order_id,
@@ -419,7 +499,7 @@ class Tickera_Customization {
 				'[order_id]',
 				'[order_date]'
 			), array(
-				$user->user_login,
+				$user_name,
 				$order_attendees_link,
 				$round_table_orders_link,
 				$order_id,
@@ -442,7 +522,7 @@ class Tickera_Customization {
 			$headers[] = "From: {$site_name} <{$admin_email}>";
 			$headers[] = "Content-Type: text/html; charset=UTF-8"; 
 			
-			return wp_mail($user->user_email, $subject, $message, $headers);
+			return wp_mail($user_email, $subject, $message, $headers);
 		}
 		
 	}
@@ -776,9 +856,13 @@ function add_link_back_to_order( $order ) {
  * @return bool
  */
 function TC_Load() {
-    $user_id = get_current_user_id();
-    if( $user_id == 16 || $user_id == 18 ) {
+    //$user_id = get_current_user_id();
+    //if( $user_id == 16 || $user_id == 18 ) 
+	{
+		// ini_set('display_errors', 'On');
+		// error_reporting(E_ALL);
        return Tickera_Customization::instance();
     }   
 }
 add_action( 'plugins_loaded', 'TC_Load' );
+
