@@ -72,27 +72,29 @@
 					$temp_url = add_query_arg('tctoken', $token, $temp_url);
 					$temp_url = add_query_arg('oid', $order_id, $temp_url);
 					$temp_url = add_query_arg('pid', $item->get_product_id(), $temp_url);
-					
-					$item_index++;
-					if($item_index == 1) {
-						echo '<div class="tc-product-row">';
-					}
-					?>	    	
-				   <div class="tc-product-column">
-						<table>
-							<tr><td><img src="<?php echo get_the_post_thumbnail_url( $item->get_product_id(), 'post-thumbnail' );?>" width="90%"/></td></tr>
-							<tr><td><?php echo get_the_title($item->get_product_id());?></td></tr>
-							<tr><td><a href="<?php echo $temp_url;?>"><?php _e('View / Edit Details', 'TC');?></a></td></tr>
-						</table>
-				   </div>
-						
-					<?php
-					if($item_index == 3) {
-						echo '</div>';
-						$item_index = 0;
-					}
+					$is_round_table = get_post_meta( $item->get_product_id(), '_is_round_table', true );
+					if( intval($is_round_table) == 1 ) {
 
-					
+						$item_index++;
+						if($item_index == 1) {
+							echo '<div class="tc-product-row">';
+						}
+						?>	    	
+						<div class="tc-product-column">
+							<table>
+								<tr><td><img src="<?php echo get_the_post_thumbnail_url( $item->get_product_id(), 'post-thumbnail' );?>" width="90%"/></td></tr>
+								<tr><td><?php echo get_the_title($item->get_product_id());?></td></tr>
+								<tr><td><a href="<?php echo $temp_url;?>"><?php _e('View / Edit Details', 'TC');?></a></td></tr>
+							</table>
+						</div>
+							
+						<?php
+						if($item_index == 3) {
+							echo '</div>';
+							$item_index = 0;
+						}
+
+					}
 				}
 				?>
 		</div>

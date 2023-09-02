@@ -305,7 +305,8 @@ class Tickera_Customization {
 		
 		//add_action ( 'init', array( $this, 'disable_attendee_email' ) );
 		
-		add_action('woocommerce_new_order', array( $this, 'action_woocommerce_new_order' ), 10, 2);
+		add_action('woocommerce_order_status_processing', array( $this, 'woocommerce_order_status_completed_callback' ), 10, 1); 
+		add_action('woocommerce_order_status_completed', array( $this, 'woocommerce_order_status_completed_callback' ), 0, 1);
 		
 		// if(isset($_REQUEST['tcrun']) && $_REQUEST['tcrun'] == 'now') {
 		// 	add_action('init', array( $this, 'process_attendees_email' ), 10, 0);
@@ -416,8 +417,8 @@ class Tickera_Customization {
 		return ob_get_clean();
 	}
 	
-	function action_woocommerce_new_order( $order_id, $order ) {
-		
+	function woocommerce_order_status_completed_callback( $order_id ) {
+		$order = wc_get_order($order_id);
 		$is_round_table = 0;
 		foreach( $order->get_items( ['line_item'] ) as $item_id => $item ) {
 			$item_product_id = $item->get_product_id();
@@ -866,3 +867,127 @@ function TC_Load() {
 }
 add_action( 'plugins_loaded', 'TC_Load' );
 
+remove_action( 'tc_wb_allowed_tickets_access', 'tc_maybe_send_order_paid_attendee_email' );
+
+add_action( 'tc_wb_allowed_tickets_access', 'tc_maybe_send_order_paid_attendee_email_customized' );
+function tc_maybe_send_order_paid_attendee_email_customized( $wc_order ) {
+	$user_id = get_current_user_id();
+    //if( $user_id == 16 || $user_id == 18 ) 
+	{
+		$order_id = $wc_order->get_id();
+		global $tc;
+
+		$tc_email_settings = get_option( 'tc_email_setting', false );
+		$email_send_type = isset( $tc_email_settings[ 'email_send_type' ] ) ? $tc_email_settings[ 'email_send_type' ] : 'wp_mail';
+
+		if ( isset( $tc_email_settings[ 'attendee_send_message' ] ) && 'yes' == $tc_email_settings[ 'attendee_send_message' ] ) {
+
+			add_filter( 'wp_mail_content_type', 'set_content_type' );
+
+			if ( ! function_exists( 'set_content_type' ) ) {
+
+				function set_content_type( $content_type ) {
+					return 'text/html';
+				}
+			}
+
+			add_filter( 'wp_mail_from', 'attendee_email_from_email', 999 );
+			add_filter( 'wp_mail_from_name', 'attendee_email_from_name', 999 );
+
+			$subject = isset( $tc_email_settings[ 'attendee_order_subject' ] ) ? $tc_email_settings[ 'attendee_order_subject' ] : __( 'Your Ticket is here!', 'tc' );
+			$default_message = 'Hello, <br /><br />You can download ticket for EVENT_NAME here DOWNLOAD_URL';
+			$order = new TC_Order( $order_id );
+
+			$tc_attendee_order_message = isset( $tc_email_settings[ 'attendee_order_message' ] ) ? $tc_email_settings[ 'attendee_order_message' ] : '';
+			$tc_attendee_order_message = apply_filters( 'tc_attendee_order_message', $tc_attendee_order_message, $order );
+
+			$attendee_headers = '';
+			$order_attendees = TC_Orders::get_tickets_ids( $order->details->ID );
+
+			foreach ( $order_attendees as $order_attendee_id ) {
+
+				$ticket_meta = get_post_meta( $order_attendee_id );
+				$ticket_type_id = isset( $ticket_meta[ 'ticket_type_id' ] ) ? reset( $ticket_meta[ 'ticket_type_id' ] ) : '';
+
+				$is_round_table = get_post_meta( $ticket_type_id, '_is_round_table', true );
+				if( intval($is_round_table) != 1 ) {
+
+					$ticket_type_name = get_the_title( $ticket_type_id );
+
+					$ticket_code = isset( $ticket_meta[ 'ticket_code' ] ) ? reset( $ticket_meta[ 'ticket_code' ] ) : '';
+					$ticket_code = strtoupper( $ticket_code );
+
+					$event_id = isset( $ticket_meta[ 'event_id' ] ) ? reset( $ticket_meta[ 'event_id' ] ) : '';
+					$event_id = (int) $event_id;
+
+					$first_name = isset( $ticket_meta[ 'first_name' ] ) ? reset( $ticket_meta[ 'first_name' ] ) : '';
+					$last_name = isset( $ticket_meta[ 'last_name' ] ) ? reset( $ticket_meta[ 'last_name' ] ) : '';
+					$owner_email = isset( $ticket_meta[ 'owner_email' ] ) ? reset( $ticket_meta[ 'owner_email' ] ) : '';
+
+					$event = new TC_Event( $event_id );
+					$event_location = get_post_meta( $event_id, 'event_location', true );
+
+					$message = isset( $tc_attendee_order_message ) ? $tc_attendee_order_message : $default_message;
+					$placeholders = array( 'EVENT_NAME', 'DOWNLOAD_URL', 'TICKET_TYPE', 'TICKET_CODE','FIRST_NAME', 'LAST_NAME', 'EVENT_LOCATION' );
+					$placeholder_values = array( $event->details->post_title, tc_get_ticket_download_link( '', '', $order_attendee_id, true ), $ticket_type_name, $ticket_code,$first_name, $last_name, $event_location );
+
+					if ( ! empty( $owner_email ) ) {
+
+						// Generate pdf file
+						$templates = new TC_Ticket_Templates();
+						$enabled_attachment = ( isset( $tc_email_settings[ 'attendee_attach_ticket' ] ) && 'yes' == $tc_email_settings[ 'attendee_attach_ticket' ] ) ? true : false;
+						$content = ( $enabled_attachment ) ? $templates->generate_preview( $order_attendee_id, false, false, false, $enabled_attachment ) : '';
+
+						$placeholders = apply_filters( 'tc_order_completed_attendee_email_placeholders', $placeholders );
+						$placeholder_values = apply_filters( 'tc_order_completed_attendee_email_placeholder_values', $placeholder_values, $order_attendee_id, $order_id );
+						$message = str_replace( $placeholders, $placeholder_values, $message );
+
+						if ( $email_send_type == 'wp_mail' ) {
+
+							$attachment = array( $content );
+							$_POST[ 'ticket_instance_id' ] = $order_attendee_id;
+
+							// Override PHPMailer addAttachment method if attachment is not a physical file
+							add_action( 'phpmailer_init', 'insert_string_attachment' );
+
+							$message = apply_filters( 'tc_order_completed_attendee_email_message', wpautop( $message ) );
+							$attendee_headers = apply_filters( 'tc_order_completed_attendee_email_headers', $attendee_headers );
+
+							@wp_mail( sanitize_email( $owner_email ), sanitize_text_field( stripslashes( $subject ) ), tc_sanitize_string( stripcslashes( wpautop ( $message ) ) ), $attendee_headers, $attachment );
+
+						} else {
+
+							// Boundary
+							$semi_rand = md5( time() );
+							$mime_boundary = "==Multipart_Boundary_x{$semi_rand}x";
+
+							// Header for sender info
+							$headers = "From: " . attendee_email_from_email( '' ) . " <" . attendee_email_from_email( '' ) . ">\n" .
+								'Reply-To: ' . attendee_email_from_email( '' ) . "\n" .
+								'X-Mailer: PHP/' . phpversion();
+
+							// Headers for attachment
+							$headers .= "\nMIME-Version: 1.0\n" . "Content-Type: multipart/mixed;" . " boundary=\"{$mime_boundary}\"";
+
+							// Multipart boundary
+							$message = "--{$mime_boundary}\n" . "Content-Type: text/html; charset=\"UTF-8\"\n" .
+								"Content-Transfer-Encoding: 7bit\n\n" . $message . "\n\n";
+
+							// Attachment Content
+							$message .= "--{$mime_boundary}\n";
+							$message .= "Content-Type: application/octet-stream; name=\"" . $ticket_code . '.pdf' . "\"\n" .
+								"Content-Description: " . $ticket_code . '.pdf' . "\n" .
+								"Content-Disposition: attachment;" . " filename=\"" . $ticket_code . '.pdf' . "\";\n" .
+								"Content-Transfer-Encoding: base64;\n\n" . base64_encode( $content ) . "\n\n";
+							$message .= "--{$mime_boundary}--";
+
+							@mail( sanitize_email( $owner_email ), sanitize_text_field( stripslashes( $subject ) ), stripcslashes( wpautop( $message ) ), $headers );
+						}
+					}
+				}
+			}
+		}
+    } 
+
+    
+}
