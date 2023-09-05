@@ -84,20 +84,23 @@ class Tickera_Customization_Settings {
         exit;
     }
 
+    /**
+     * Load settings page content
+     */
     public function load_setting_menu() {
         
 		$settings_sections = array(
             'general' => array(
-                'title' => __( 'General Settings', 'cs_ld_addon' ),
+                'title' => __( 'General Settings', TC_TEXT_DOMAIN ),
                 'icon' => 'fa-cog',
             ),
             
             'round_table_email' => array(
-                'title' => __( 'Purchaser Email', 'cs_ld_addon' ),
+                'title' => __( 'Purchaser Email', TC_TEXT_DOMAIN ),
                 'icon' => 'fa-info',
             ),
 			 'token_email' => array(
-                'title' => __( 'Token Generation Email', 'cs_ld_addon' ),
+                'title' => __( 'Token Generation Email', TC_TEXT_DOMAIN ),
                 'icon' => 'fa-info',
             ),
         );
@@ -107,7 +110,7 @@ class Tickera_Customization_Settings {
         ?>
 		<div class="wrap">
 			<div id="icon-options-general" class="icon32"></div>
-			<h2><?php _e( 'Tickera Customization Settings', 'cs_ld_addon' ); ?></h2>
+			<h2><?php _e( 'Tickera Customization Settings', TC_TEXT_DOMAIN ); ?></h2>
 		
 			<div class="nav-tab-wrapper">
 				<?php
@@ -116,7 +119,7 @@ class Tickera_Customization_Settings {
 						<a href="?page=tc-customization-settngs&tab=<?php echo $key; ?>"
 							class="nav-tab <?php echo $this->page_tab == $key ? 'nav-tab-active' : ''; ?>">
 							<i class="fa <?php echo $section['icon']; ?>" aria-hidden="true"></i>
-							<?php _e( $section['title'], 'cs_ld_addon' ); ?>
+							<?php _e( $section['title'], TC_TEXT_DOMAIN ); ?>
 						</a>
 						<?php
 						}
