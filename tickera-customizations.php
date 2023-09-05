@@ -4,8 +4,8 @@
  * Version: 1.0
  * Description:
  * Author: LDninjas.com
- * Author URI: LDninjas.com
- * Plugin URI: LDninjas.com
+ * Author URI: ldninjas.com
+ * Plugin URI: ldninjas.com
  * Text Domain: TC
  * License: GNU General Public License v2.0
  * License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -104,6 +104,50 @@ class Tickera_Customization {
         define( 'TC_TEXT_DOMAIN', 'TC' );
     }
 
+	/**
+     * Plugin Hooks
+     */
+    public function hooks() {
+
+        $my_setting = new Tickera_Customization_Settings();
+        add_action ( 'admin_menu', array( $my_setting, 'setting_menu' ), 1001 );
+		add_action( 'admin_post_save_tc_settings', array( $my_setting, 'save_email_tab' ) );
+		add_action ( 'current_screen', array( $my_setting, 'save_settings' ) );
+		if ( ! is_admin() ) {
+			add_action( 'init', array( $my_setting, 'save_settings' ) );
+		}
+		add_action( 'wp_ajax_tc_customization_attendee_update', [ $this, 'tc_customization_attendee_update' ] );
+		add_action( 'wp_ajax_tc_customization_token_generator', [ $this, 'tc_customization_token_generator' ] );
+		add_action( 'wp_ajax_tc_customization_token_generator_admin', [ $this, 'tc_customization_token_generator_admin' ] );
+		
+        add_action( 'wp_enqueue_scripts', [ $this, 'tc_add_front_scripts' ] );
+        add_action( 'admin_enqueue_scripts', [ $this, 'tc_add_admin_scripts' ] );
+       
+		add_action( 'woocommerce_product_options_general_product_data', array( $this, 'tc_add_custom_settings' ) );
+		add_action( 'woocommerce_process_product_meta', array( $this, 'tc_custom_settings_fields_save' ), 10, 1 );
+		
+		//add_action ( 'init', array( $this, 'disable_attendee_email' ) );
+		
+		add_action('woocommerce_order_status_processing', array( $this, 'woocommerce_order_status_completed_callback' ), 10, 1); 
+		add_action('woocommerce_order_status_completed', array( $this, 'woocommerce_order_status_completed_callback' ), 0, 1);
+		
+		// if(isset($_REQUEST['tcrun']) && $_REQUEST['tcrun'] == 'now') {
+		// 	add_action('init', array( $this, 'process_attendees_email' ), 10, 0);
+		// }
+
+		add_action( 'tc_process_attendees_emails', array( $this, 'process_attendees_email' ) );
+		if ( ! wp_next_scheduled( 'tc_process_attendees_emails' ) ) {
+			wp_schedule_event( time(), 'daily', 'tc_process_attendees_emails' );
+		}
+		
+		add_shortcode( 'Ticket_Token_Generator', array( $this,'tc_token_generator') );
+
+		add_filter( 'tc_order_is_paid', array( $this,'tc_order_is_paid_callback'), 9999, 2 );
+	}
+
+	/**
+	 * Return orders of an email
+	 */
 	function get_orders_by_billing_email($user_email) {
 		$query = new WC_Order_Query();
 		$query->set( 'customer', $user_email );
@@ -111,12 +155,12 @@ class Tickera_Customization {
 	}
 
 	/**
-     * Plugin Hooks
+     * generate token and send email.
      */
 	function tc_customization_token_generator() {
 		
 		global $wpdb;
-		// Make your response and echo it.
+
 		$email_for_token 	= sanitize_text_field($_REQUEST['email_for_token']);
 		$user = get_user_by('email', $email_for_token);
 		$user_id = '0';
@@ -158,13 +202,6 @@ class Tickera_Customization {
 
 			} else {
 				$token = md5(time() . $user_id);
-				// $wpdb->insert($wpdb->prefix.'tc_attendee_tokens', [
-				// 							'user_id' => $user_id,
-				// 							'user_email' => $user_email,
-				// 							'token' => $token,
-				// 							'issue_date' => date('Y-m-d H:i:s'),									
-				// 							'expiry_date' => 'date_add(now(),interval 1 day)',								
-				// 						], ['%d', '%s', '%s', '%s'] );
 				$sql_query = "insert into ".$wpdb->prefix."tc_attendee_tokens(user_id,user_email,token,issue_date,expiry_date) values('".$user_id."','".$user_email."','".$token."','".date('Y-m-d H:i:s')."','".date('Y-m-d H:i:s', strtotime('+1 Day'))."')";
 				$wpdb->query($sql_query);
 				$this->tc_send_token_gen_email($user_name, $user_email, $token);
@@ -177,17 +214,20 @@ class Tickera_Customization {
 		exit;
 	}
 
+	/**
+	 * Send token generation email.
+	 */
 	function tc_send_token_gen_email($user_name, $user_email, $token) {
 
 		
 		$subject  = get_option('tc_token_generation_subject');
 		if(empty($subject)) {
-			$subject  = __('Round Table Token Generation', 'cs_ld_addon');
+			$subject  = __('Round Table Token Generation', TC_TEXT_DOMAIN );
 		}
 		
 		$message  = get_option('tc_token_generation_body');
 		if(empty($message)) {
-			$message  = __('<p>Dear [user_login],</p><p>Your token is generated successfully. Please, click <a href="[round_table_orders_link]">here</a> to view the available round table orders.</p><p>Thank You</p>', 'cs_ld_addon');
+			$message  = __('<p>Dear [user_login],</p><p>Your token is generated successfully. Please, click <a href="[round_table_orders_link]">here</a> to view the available round table orders.</p><p>Thank You</p>', TC_TEXT_DOMAIN);
 		}
 		
 		$tc_roundtable_main_page 	= get_option( 'tc_roundtable_main_page' );
@@ -233,7 +273,7 @@ class Tickera_Customization {
 	}
 
 	/**
-     * Plugin Hooks
+     * Update attendees
      */
 	function tc_customization_attendee_update() {
 		global $wpdb;
@@ -276,51 +316,11 @@ class Tickera_Customization {
 				exit;
 			}
 			
-			// Don't forget to stop execution afterward.
 			wp_die();
 		}
 	}
 	
-    /**
-     * Plugin Hooks
-     */
-    public function hooks() {
-
-        $my_setting = new Tickera_Customization_Settings();
-        add_action ( 'admin_menu', array( $my_setting, 'setting_menu' ), 1001 );
-		add_action( 'admin_post_save_tc_settings', array( $my_setting, 'save_email_tab' ) );
-		add_action ( 'current_screen', array( $my_setting, 'save_settings' ) );
-		if ( ! is_admin() ) {
-			add_action( 'init', array( $my_setting, 'save_settings' ) );
-		}
-		add_action( 'wp_ajax_tc_customization_attendee_update', [ $this, 'tc_customization_attendee_update' ] );
-		add_action( 'wp_ajax_tc_customization_token_generator', [ $this, 'tc_customization_token_generator' ] );
-		add_action( 'wp_ajax_tc_customization_token_generator_admin', [ $this, 'tc_customization_token_generator_admin' ] );
-		
-        add_action( 'wp_enqueue_scripts', [ $this, 'tc_add_front_scripts' ] );
-        add_action( 'admin_enqueue_scripts', [ $this, 'tc_add_admin_scripts' ] );
-       
-		add_action( 'woocommerce_product_options_general_product_data', array( $this, 'tc_add_custom_settings' ) );
-		add_action( 'woocommerce_process_product_meta', array( $this, 'tc_custom_settings_fields_save' ), 10, 1 );
-		
-		//add_action ( 'init', array( $this, 'disable_attendee_email' ) );
-		
-		add_action('woocommerce_order_status_processing', array( $this, 'woocommerce_order_status_completed_callback' ), 10, 1); 
-		add_action('woocommerce_order_status_completed', array( $this, 'woocommerce_order_status_completed_callback' ), 0, 1);
-		
-		// if(isset($_REQUEST['tcrun']) && $_REQUEST['tcrun'] == 'now') {
-		// 	add_action('init', array( $this, 'process_attendees_email' ), 10, 0);
-		// }
-
-		add_action( 'tc_process_attendees_emails', array( $this, 'process_attendees_email' ) );
-		if ( ! wp_next_scheduled( 'tc_process_attendees_emails' ) ) {
-			wp_schedule_event( time(), 'daily', 'tc_process_attendees_emails' );
-		}
-		
-		add_shortcode( 'Ticket_Token_Generator', array( $this,'tc_token_generator') );
-
-		add_filter( 'tc_order_is_paid', array( $this,'tc_order_is_paid_callback'), 9999, 2 );
-	}
+    
 	
 	function tc_order_is_paid_callback($order_is_paid, $order_id) {
 		

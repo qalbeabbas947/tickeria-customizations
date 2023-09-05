@@ -5,13 +5,17 @@
 		
         var MWC_FRONTEND = {
             init: function () {
-                
-				$('#btn_tc_cancel_attendees').on('click', function () {
-					var link = $(this).data('link');
-					document.location=link;
-                });
+
+                generateToken();
+                saveAttendees();
+            },
 				
-				$('#tc_email_for_token_form').on('submit', function (e) {
+            /**
+             *  Generate toekn when form is submitted from front-end.
+             */
+            generateToken: function() {
+
+                $('#tc_email_for_token_form').on( 'submit', function (e) {
 					e.preventDefault();
 					var email_for_token 	= $('#tc_email_for_token').val();
 					
@@ -40,29 +44,20 @@
 
                     });
 				});
+            },
+
+            /**
+             * Save the attendees
+             */
+            saveAttendees: function(){
+
                 $('#tc-product-attendees-form').on('submit', function (e) {
 																	 
                     e.preventDefault();
 					var form = $(this).serialize();
 					var tc_reload 		= $('#tc_reload').val();
-					
-                    /*var tc_order_id 	= $('#tc_order_id').val();
-					var tc_attendee_id 	= $('#tc_attendee_id').val();
-					var tc_first_name 	= $('#tc_first_name').val();
-					var tc_last_name 	= $('#tc_last_name').val();
-					var tc_owner_email 	= $('#tc_owner_email').val();
-					var tctoken 		= $('#tctoken').val();*/
+		
 					$( '#tc_order_attendee_message' ).css('display', 'none').html('');
-                    // AJAX Request to apply coupon code to the cart
-                    /*var data = {
-                        tctoken: tctoken,
-						tc_order_id: tc_order_id,
-                        tc_attendee_id: tc_attendee_id,
-                        tc_first_name: tc_first_name,
-                        tc_last_name: tc_last_name,
-                        tc_owner_email: tc_owner_email,
-                        action: 'tc_customization_attendee_update'
-                    };*/
 
                     $.ajax({
                         type: 'post',
@@ -83,7 +78,8 @@
 
                     });
                 });
-            },
+            }
+            
         };
         MWC_FRONTEND.init();
     });
