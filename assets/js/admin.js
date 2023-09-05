@@ -17,7 +17,8 @@
                     var data = {
                         order_id: 	aorder_id,
                         user_id: 	auser_id,
-                        action: 	'tc_customization_token_generator_admin'
+                        action: 	'tc_customization_token_generator_admin',
+                        tc_time:    Date.now()
                     };
 
                     $.ajax({
@@ -35,6 +36,7 @@
                         },
                         success: function (response) {
                              alert( response.message );
+                             document.location.reload();
                         }
                     });	
 				});

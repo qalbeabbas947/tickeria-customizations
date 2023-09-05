@@ -116,8 +116,8 @@ class Tickera_Customization {
 		if ( ! is_admin() ) {
 			add_action( 'init', array( $my_setting, 'save_settings' ) );
 		}
-		add_action( 'wp_ajax_tc_customization_attendee_update', [ $this, 'tc_customization_attendee_update' ] );
-		add_action( 'wp_ajax_tc_customization_token_generator', [ $this, 'tc_customization_token_generator' ] );
+		add_action( 'wp_ajax_nopriv_tc_customization_attendee_update', [ $this, 'tc_customization_attendee_update' ] );
+		add_action( 'wp_ajax_nopriv_tc_customization_token_generator', [ $this, 'tc_customization_token_generator' ] );
 		add_action( 'wp_ajax_tc_customization_token_generator_admin', [ $this, 'tc_customization_token_generator_admin' ] );
 		
         add_action( 'wp_enqueue_scripts', [ $this, 'tc_add_front_scripts' ] );
@@ -623,7 +623,7 @@ class Tickera_Customization {
         global $wp_roles;
         
         wp_enqueue_style( 'tc-admin-css', TC_ASSETS_URL . 'css/admin.css', [], time(), null );
-        wp_enqueue_script( 'tc-admin-js', TC_ASSETS_URL . 'js/admin.js', [ 'jquery' ], time(), true );
+        wp_enqueue_script( 'tc-admin-js', TC_ASSETS_URL . 'js/admin.js?tctime='.time(), [ 'jquery' ], time(), true );
 
         wp_localize_script( 'tc-admin-js', 'TC_Customization', [
             'ajaxURL'       => admin_url( 'admin-ajax.php' ),

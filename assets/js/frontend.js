@@ -6,8 +6,8 @@
         var MWC_FRONTEND = {
             init: function () {
 
-                generateToken();
-                saveAttendees();
+                MWC_FRONTEND.generateToken();
+                MWC_FRONTEND.saveAttendees();
             },
 				
             /**
