@@ -6,11 +6,21 @@ if( ! defined( 'ABSPATH' ) ) exit;
  */
 class Tickera_Customization_Settings {
 
-	public $page_tab;
-    function __construct() {
-		$this->page_tab = isset( $_GET['tab'] ) ? $_GET['tab'] : 'general';
+	private $page_tab;
+    
+    /**
+     * Constructor function
+     */
+    public function __construct() {
+
+        $this->page_tab = isset( $_GET['tab'] ) ? $_GET['tab'] : 'general';
+        add_action( 'admin_menu', [ $this, 'setting_menu' ], 1001 );
+        add_action( 'admin_post_save_tc_settings', [ $this, 'save_custom_settings' ] );
     }
     
+    /**
+     * Add new setting menu under WooCommerce menu
+     */
     public function setting_menu() {
         
         /**
@@ -22,61 +32,55 @@ class Tickera_Customization_Settings {
             __( 'Tickera Settings', 'TC' ),
             'manage_options',
             'tc-customization-settngs',
-            array( $this, ( 'load_setting_menu' ) )
+            [ $this, 'load_setting_menu' ]
         );
     }
 	
-	/**
-     * Save Plugin's Settings
-     */
-    public static function save_settings () {
 
-        $settings_saved = false;
-
-        /**
-         * General Settings
-         */
-        if( ( isset( $_POST['save_csld_general_settings'] ) && current_user_can( 'manage_options' ) && ! empty( $_POST ) ) ) {
-	        $settings_saved = true;
-            
-            update_option( 'tc_roundtable_main_page', 	sanitize_text_field( $_POST['tc_roundtable_main_page'] ) );
-			update_option( 'tc_roundtable_sub_page', 	sanitize_text_field( $_POST['tc_roundtable_sub_page'] ) );
-			update_option( 'tc_roundtable_form_page', 	sanitize_text_field( $_POST['tc_roundtable_form_page'] ) );
-        }
-	
-	
-	}
 	/**
-     * Save setting course availability email settings
+     * Save custom settings
      */
-    public function save_email_tab() {
+    public function save_custom_settings() {
 
         $url = admin_url('admin.php');
-        $url = add_query_arg('page', 'tc-customization-settngs', $url);
+        $url = add_query_arg( 'page', 'tc-customization-settngs', $url );
         
-
         if( check_admin_referer('save_tc_settings_nonce') ) {
 
-            $tc_round_table_subject = sanitize_textarea_field(stripslashes_deep($_POST['tc_round_table_subject']));
-            $tc_round_table_body = wp_kses_post(stripslashes_deep($_POST['tc_round_table_body']));
-            if(isset( $_POST['tc_round_table_subject'] )) {
-                update_option('tc_round_table_subject', $tc_round_table_subject);
-                update_option('tc_round_table_body', $tc_round_table_body);
-                $url = add_query_arg('tab', 'round_table_email', $url);
-            }
+            $current_tab = isset( $_POST['tc_current_tab'] ) ? $_POST['tc_current_tab'] : '';
             
-            $tc_token_generation_subject = sanitize_textarea_field(stripslashes_deep($_POST['tc_token_generation_subject']));
-            $tc_token_generation_body = wp_kses_post(stripslashes_deep($_POST['tc_token_generation_body']));
-            if(isset( $_POST['tc_token_generation_body'] )) {
-                update_option('tc_token_generation_subject', $tc_token_generation_subject);
-                update_option('tc_token_generation_body', $tc_token_generation_body);
-                $url = add_query_arg('tab', 'token-email', $url);
+            if( $current_tab === 'round_table_email' ) {
+
+                $tc_round_table_subject = isset( $_POST['tc_round_table_subject'] ) ? sanitize_textarea_field( stripslashes_deep( $_POST['tc_round_table_subject'] ) ) : '';
+                $tc_round_table_body = isset( $_POST['tc_round_table_body'] ) ? wp_kses_post( stripslashes_deep( $_POST['tc_round_table_body'] ) ) : '';
+
+                update_option( 'tc_round_table_subject', $tc_round_table_subject );
+                update_option( 'tc_round_table_body', $tc_round_table_body );
+                $url = add_query_arg( 'tab', 'round_table_email', $url );
             }
 
-            $url = add_query_arg('tc_setting_saved', 1, $url);
+            if( $current_tab === 'token_email' ) {
+
+                $tc_token_generation_subject = isset( $_POST['tc_token_generation_subject'] ) ? sanitize_textarea_field( stripslashes_deep( $_POST['tc_token_generation_subject'] ) ) : '';
+                $tc_token_generation_body = isset( $_POST['tc_token_generation_body'] ) ? wp_kses_post( stripslashes_deep( $_POST['tc_token_generation_body'] ) ) : '';
+
+                update_option( 'tc_token_generation_subject', $tc_token_generation_subject );
+                update_option( 'tc_token_generation_body', $tc_token_generation_body );
+                $url = add_query_arg( 'tab', 'token_email', $url );
+            }
+
+            if( $current_tab === 'general' ) {
+
+                update_option( 'tc_roundtable_main_page', sanitize_text_field( $_POST['tc_roundtable_main_page'] ) );
+			    update_option( 'tc_roundtable_sub_page', sanitize_text_field( $_POST['tc_roundtable_sub_page'] ) );
+			    update_option( 'tc_roundtable_form_page', sanitize_text_field( $_POST['tc_roundtable_form_page'] ) );
+                $url = add_query_arg( 'tab', 'general', $url );
+            }
+
+            $url = add_query_arg( 'updated', 1, $url );
         }
 
-        wp_redirect($url);
+        wp_redirect( $url );
         exit;
     }
 
@@ -92,7 +96,7 @@ class Tickera_Customization_Settings {
                 'title' => __( 'Purchaser Email', 'cs_ld_addon' ),
                 'icon' => 'fa-info',
             ),
-			 'token-email' => array(
+			 'token_email' => array(
                 'title' => __( 'Token Generation Email', 'cs_ld_addon' ),
                 'icon' => 'fa-info',
             ),

@@ -3,7 +3,7 @@
  * Plugin Name: Tickera Customization
  * Version: 1.0
  * Description:
- * Author: LDninjas.com
+ * Author: LDninjas
  * Author URI: ldninjas.com
  * Plugin URI: ldninjas.com
  * Text Domain: TC
@@ -66,7 +66,7 @@ class Tickera_Customization {
     /**
      * includes plugin files
      */
-    public function includes() {
+    private function includes() {
         
         if( file_exists( TC_INCLUDES_DIR.'settings.php' ) ) {
             require_once( TC_INCLUDES_DIR . 'settings.php' );
@@ -82,7 +82,7 @@ class Tickera_Customization {
     /**
      * defining constants for plugin
      */
-    public function setup_constants() {
+    private function setup_constants() {
 
         /**
          * Directory
@@ -107,16 +107,9 @@ class Tickera_Customization {
 	/**
      * Plugin Hooks
      */
-    public function hooks() {
+    private function hooks() {
 
-        $my_setting = new Tickera_Customization_Settings();
-        add_action ( 'admin_menu', array( $my_setting, 'setting_menu' ), 1001 );
-		add_action( 'admin_post_save_tc_settings', array( $my_setting, 'save_email_tab' ) );
-		add_action ( 'current_screen', array( $my_setting, 'save_settings' ) );
-		if ( ! is_admin() ) {
-			add_action( 'init', array( $my_setting, 'save_settings' ) );
-		}
-		add_action( 'wp_ajax_nopriv_tc_customization_attendee_update', [ $this, 'tc_customization_attendee_update' ] );
+        add_action( 'wp_ajax_nopriv_tc_customization_attendee_update', [ $this, 'tc_customization_attendee_update' ] );
 		add_action( 'wp_ajax_nopriv_tc_customization_token_generator', [ $this, 'tc_customization_token_generator' ] );
 		add_action( 'wp_ajax_tc_customization_token_generator_admin', [ $this, 'tc_customization_token_generator_admin' ] );
 		
@@ -130,11 +123,7 @@ class Tickera_Customization {
 		
 		add_action('woocommerce_order_status_processing', array( $this, 'woocommerce_order_status_completed_callback' ), 10, 1); 
 		add_action('woocommerce_order_status_completed', array( $this, 'woocommerce_order_status_completed_callback' ), 0, 1);
-		
-		// if(isset($_REQUEST['tcrun']) && $_REQUEST['tcrun'] == 'now') {
-		// 	add_action('init', array( $this, 'process_attendees_email' ), 10, 0);
-		// }
-
+	
 		add_action( 'tc_process_attendees_emails', array( $this, 'process_attendees_email' ) );
 		if ( ! wp_next_scheduled( 'tc_process_attendees_emails' ) ) {
 			wp_schedule_event( time(), 'daily', 'tc_process_attendees_emails' );
