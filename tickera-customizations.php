@@ -418,114 +418,117 @@ class Tickera_Customization {
 	}
 	
 	function woocommerce_order_status_completed_callback( $order_id ) {
-		$order = wc_get_order($order_id);
-		$is_round_table = 0;
-		foreach( $order->get_items( ['line_item'] ) as $item_id => $item ) {
-			$item_product_id = $item->get_product_id();
-			$is_round_table = get_post_meta( $item_product_id, '_is_round_table', true );
-			if( intval($is_round_table) == 1 ) {
-				$is_round_table = 1;
-			}
-		}
 		
-		if( $is_round_table == 1 ) {
-			global $wpdb;
-			$_access =  $wpdb->get_results( $wpdb->prepare('select * from '.$wpdb->prefix.'tc_attendee_tokens where expiry_date>now() and (user_id=%d or user_email=%s)', $order->get_user_id(), $order->get_billing_email() ) );
-			if( !empty($_access) && count($_access) > 0 ) {
-				$token = $_access[0]->token;
-			} else {
-				$token = md5(time() . $order->get_user_id());
-				// $wpdb->insert($wpdb->prefix.'tc_attendee_tokens', [
-				// 							'user_id' => $order->get_user_id(),
-				// 							'user_email' => $order->get_billing_email(),
-				// 							'token' => $token,
-				// 							'issue_date' => date('Y-m-d H:i:s'),									
-				// 							'expiry_date' => date('Y-m-d H:i:s', strtotime("+1 Day")),								
-				// 						], ['%d', '%s', '%s', '%s'] );
-				$sql_query = "insert into ".$wpdb->prefix."tc_attendee_tokens(user_id,user_email,token,issue_date,expiry_date) values('".$order->get_user_id()."','".$order->get_billing_email()."','".$token."','".date('Y-m-d H:i:s')."','".date('Y-m-d H:i:s', strtotime('+1 Day'))."')";
-				$wpdb->query($sql_query);
+		$tc_round_table_email_sent = get_post_meta( $order_id, 'tc_round_table_email_sent', true );
+		if( $tc_round_table_email_sent!='Yes' ) {
+			$order = wc_get_order($order_id);
+			$is_round_table = 0;
+			foreach( $order->get_items( ['line_item'] ) as $item_id => $item ) {
+				$item_product_id = $item->get_product_id();
+				$is_round_table = get_post_meta( $item_product_id, '_is_round_table', true );
+				if( intval($is_round_table) == 1 ) {
+					$is_round_table = 1;
+				}
+			}
+			
+			if( $is_round_table == 1 ) {
+				global $wpdb;
+				$_access =  $wpdb->get_results( $wpdb->prepare('select * from '.$wpdb->prefix.'tc_attendee_tokens where expiry_date>now() and (user_id=%d or user_email=%s)', $order->get_user_id(), $order->get_billing_email() ) );
+				if( !empty($_access) && count($_access) > 0 ) {
+					$token = $_access[0]->token;
+				} else {
+					$token = md5(time() . $order->get_user_id());
+					// $wpdb->insert($wpdb->prefix.'tc_attendee_tokens', [
+					// 							'user_id' => $order->get_user_id(),
+					// 							'user_email' => $order->get_billing_email(),
+					// 							'token' => $token,
+					// 							'issue_date' => date('Y-m-d H:i:s'),									
+					// 							'expiry_date' => date('Y-m-d H:i:s', strtotime("+1 Day")),								
+					// 						], ['%d', '%s', '%s', '%s'] );
+					$sql_query = "insert into ".$wpdb->prefix."tc_attendee_tokens(user_id,user_email,token,issue_date,expiry_date) values('".$order->get_user_id()."','".$order->get_billing_email()."','".$token."','".date('Y-m-d H:i:s')."','".date('Y-m-d H:i:s', strtotime('+1 Day'))."')";
+					$wpdb->query($sql_query);
+					
+					
+				}
+				
+				$subject  = get_option('tc_round_table_subject');
+				if(empty($subject)) {
+					$subject  = __('Round Table Purchase Email', 'cs_ld_addon');
+				}
+				
+				$message  = get_option('tc_round_table_body');
+				if(empty($message)) {
+					$message  = __('<p>Dear [user_name],</p><p>Your have successfully purchase a round table. Please, open the <a href="[order_attendees_link]">order attendees</a> page to view and update the attendees detail. Click <a href="[round_table_orders_link]">here</a> to view the available round table orders.</p><p>Thank You</p>', 'cs_ld_addon');
+				}
 				
 				
-			}
-			
-			$subject  = get_option('tc_round_table_subject');
-			if(empty($subject)) {
-				$subject  = __('Round Table Purchase Email', 'cs_ld_addon');
-			}
-			
-			$message  = get_option('tc_round_table_body');
-			if(empty($message)) {
-				$message  = __('<p>Dear [user_name],</p><p>Your have successfully purchase a round table. Please, open the <a href="[order_attendees_link]">order attendees</a> page to view and update the attendees detail. Click <a href="[round_table_orders_link]">here</a> to view the available round table orders.</p><p>Thank You</p>', 'cs_ld_addon');
-			}
-			
-			
-			$order_date = $order->get_date_created();
-			
-			$tc_roundtable_main_page 	= get_option( 'tc_roundtable_main_page' );
-			$round_table_orders_link = get_permalink($tc_roundtable_main_page);
-			$round_table_orders_link = add_query_arg('tctoken', $token, $round_table_orders_link);
-	
-			$tc_roundtable_sub_page 	= get_option( 'tc_roundtable_sub_page' );
-			$order_attendees_link = get_permalink($tc_roundtable_sub_page);
-			$order_attendees_link = add_query_arg('tctoken', $token, $order_attendees_link);
-			$order_attendees_link = add_query_arg('oid', $order_id, $order_attendees_link);
-	
-			if(intval($order->get_user_id()) > 0) {
-				$user = get_userdata($order->get_user_id());
-				$user_name = $user->user_login;
-				$user_email = $user->user_email;
-			} else {
-				$user_name = $order->get_billing_first_name().' '.$order->get_billing_last_name();
-				$user_email = $order->get_billing_email();
-			}
-
-			$subject = str_replace(array(
-				'[user_name]',
-				'[order_attendees_link]',
-				'[round_table_orders_link]',
-				'[order_id]',
-				'[order_date]'
-			), array(
-				$user_name,
-				$order_attendees_link,
-				$round_table_orders_link,
-				$order_id,
-				$order_date
-			), $subject);
-	
-			$message = str_replace(array(
-				'[user_name]',
-				'[order_attendees_link]',
-				'[round_table_orders_link]',
-				'[order_id]',
-				'[order_date]'
-			), array(
-				$user_name,
-				$order_attendees_link,
-				$round_table_orders_link,
-				$order_id,
-				$order_date
-			), $message);
-	
-			$message_template_header = dirname(__FILE__) . '/includes/views/message_header.php';
-			$message_template_footer = dirname(__FILE__) . '/includes/views/message_footer.php';
-	
-			ob_start();
-			include_once $message_template_header;
-			echo wpautop($message);
-			include_once $message_template_footer;
-			$message = ob_get_clean();
-	
-			$site_name = get_option('blogname');
-			$admin_email = get_option('admin_email');
-			
-			$headers = [];
-			$headers[] = "From: {$site_name} <{$admin_email}>";
-			$headers[] = "Content-Type: text/html; charset=UTF-8"; 
-			
-			return wp_mail($user_email, $subject, $message, $headers);
-		}
+				$order_date = $order->get_date_created();
+				
+				$tc_roundtable_main_page 	= get_option( 'tc_roundtable_main_page' );
+				$round_table_orders_link = get_permalink($tc_roundtable_main_page);
+				$round_table_orders_link = add_query_arg('tctoken', $token, $round_table_orders_link);
 		
+				$tc_roundtable_sub_page 	= get_option( 'tc_roundtable_sub_page' );
+				$order_attendees_link = get_permalink($tc_roundtable_sub_page);
+				$order_attendees_link = add_query_arg('tctoken', $token, $order_attendees_link);
+				$order_attendees_link = add_query_arg('oid', $order_id, $order_attendees_link);
+		
+				if(intval($order->get_user_id()) > 0) {
+					$user = get_userdata($order->get_user_id());
+					$user_name = $user->user_login;
+					$user_email = $user->user_email;
+				} else {
+					$user_name = $order->get_billing_first_name().' '.$order->get_billing_last_name();
+					$user_email = $order->get_billing_email();
+				}
+	
+				$subject = str_replace(array(
+					'[user_name]',
+					'[order_attendees_link]',
+					'[round_table_orders_link]',
+					'[order_id]',
+					'[order_date]'
+				), array(
+					$user_name,
+					$order_attendees_link,
+					$round_table_orders_link,
+					$order_id,
+					$order_date
+				), $subject);
+		
+				$message = str_replace(array(
+					'[user_name]',
+					'[order_attendees_link]',
+					'[round_table_orders_link]',
+					'[order_id]',
+					'[order_date]'
+				), array(
+					$user_name,
+					$order_attendees_link,
+					$round_table_orders_link,
+					$order_id,
+					$order_date
+				), $message);
+		
+				$message_template_header = dirname(__FILE__) . '/includes/views/message_header.php';
+				$message_template_footer = dirname(__FILE__) . '/includes/views/message_footer.php';
+		
+				ob_start();
+				include_once $message_template_header;
+				echo wpautop($message);
+				include_once $message_template_footer;
+				$message = ob_get_clean();
+		
+				$site_name = get_option('blogname');
+				$admin_email = get_option('admin_email');
+				
+				$headers = [];
+				$headers[] = "From: {$site_name} <{$admin_email}>";
+				$headers[] = "Content-Type: text/html; charset=UTF-8"; 
+				update_post_meta( $order_id, 'tc_round_table_email_sent', 'Yes' );
+				return wp_mail($user_email, $subject, $message, $headers);
+			}
+		}
 	}
 	
 	function disable_attendee_email() {
