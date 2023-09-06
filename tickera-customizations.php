@@ -114,7 +114,6 @@ class Tickera_Customization {
      */
     private function hooks() {
 
-
 		/**
 		 * Enqueue scripts
 		 */
@@ -145,7 +144,6 @@ class Tickera_Customization {
 		}
 		
 		add_shortcode( 'Ticket_Token_Generator', [ $this,'tc_token_generator' ] );
-
 		add_filter( 'tc_order_is_paid', [ $this,'tc_order_is_paid_callback' ], 9999, 2 );
 	}
 
@@ -279,49 +277,38 @@ class Tickera_Customization {
 	/**
      * Update attendees
      */
-	function tc_customization_attendee_update() {
+	public function tc_customization_attendee_update() {
+		
 		global $wpdb;
-		// Make your response and echo it.
-		if (!is_user_logged_in() ) {
-			echo json_encode(['status'=>'failed', 'message'=>'Unauthorized Access!']);
+		
+		$tc_order_id = sanitize_text_field( $_REQUEST['tc_order_id'] );
+		$order = wc_get_order( $tc_order_id );
+		$tc_attendee_id = $_REQUEST['tc_attendee_id'];
+		$tc_first_name 	= $_REQUEST['tc_first_name'];
+		$tc_last_name 	= $_REQUEST['tc_last_name'];
+		$tctoken 		= $_REQUEST['tctoken'];
+		
+		$_access =  $wpdb->get_results( $wpdb->prepare('select * from '.$wpdb->prefix.'tc_attendee_tokens where expiry_date>now() and token=%s', $tctoken) );
+		if( empty( $_access ) || count( $_access ) < 1 ) {
+			
+			echo json_encode( ['status'=>'failed', 'message'=>'Invalid or expired token!'] );
 			exit;
 		}
-		else
-		{
-			
-			$tc_order_id 	= sanitize_text_field($_REQUEST['tc_order_id']);
-			$order = wc_get_order($tc_order_id);
-			if( $order->get_user_id() == get_current_user_id() )  {
 
-				$tc_attendee_id = $_REQUEST['tc_attendee_id'];
-				$tc_first_name 	= $_REQUEST['tc_first_name'];
-				$tc_last_name 	= $_REQUEST['tc_last_name'];
-				$tc_last_name 	= $_REQUEST['tc_last_name'];
-				$tctoken 		= $_REQUEST['tctoken'];
-				
-				$_access 		=  $wpdb->get_results( $wpdb->prepare('select * from '.$wpdb->prefix.'tc_attendee_tokens where expiry_date>now() and token=%s', $tctoken) );
-				if( !empty($_access) && count($_access) > 0 ) {
-					
-					if( isset($tc_attendee_id) && is_array( $tc_attendee_id ) && count($tc_attendee_id)>0 ) {
-						foreach($tc_attendee_id as $key => $aid) {
-							update_post_meta($tc_attendee_id[$key], 'first_name', $tc_first_name[$key]);
-							update_post_meta($tc_attendee_id[$key], 'last_name', $tc_last_name[$key]);
-							update_post_meta($tc_attendee_id[$key], 'owner_email', $tc_last_name[$key]);
-						}
-					}
-					echo json_encode(['status'=>'success', 'message'=>'Attendees data is updated successfully!']);
-					exit;
-				} else {
-					echo json_encode(['status'=>'failed', 'message'=>'Invalid or expired token!']);
-					exit;
-				}
-			} else {
-				echo json_encode(['status'=>'failed', 'message'=>'Your do not have permission to edit this record!']);
-				exit;
-			}
+		if( isset( $tc_attendee_id ) && is_array( $tc_attendee_id ) && count( $tc_attendee_id ) > 0 ) {
 			
-			wp_die();
+			foreach( $tc_attendee_id as $key => $aid ) {
+				update_post_meta( $tc_attendee_id[$key], 'first_name', $tc_first_name[$key] );
+				update_post_meta( $tc_attendee_id[$key], 'last_name', $tc_last_name[$key] );
+				update_post_meta( $tc_attendee_id[$key], 'owner_email', $tc_last_name[$key] );
+			}
+
+			echo json_encode( ['status'=>'success', 'message'=>'Attendees data is updated successfully!'] );
+			exit;
 		}
+
+		echo json_encode( ['status'=>'failed', 'message'=>'Invalid attempt'] );
+		exit;
 	}
 	
     /**
@@ -413,13 +400,18 @@ class Tickera_Customization {
 		exit;
 	}
 	
+	/**
+	 * Shortcode to display token generator form at front-end.
+	 */
 	public function tc_token_generator( $atts ) {
 
 		ob_start();
 		$page_template = dirname( __FILE__ ) . '/includes/views/token-generator.php'; 
-		include_once($page_template);
+		include_once( $page_template );
+		$content = ob_get_contents();
+		ob_get_clean();
 	
-		return ob_get_clean();
+		return $content;
 	}
 	
 	/**

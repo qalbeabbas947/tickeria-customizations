@@ -14,7 +14,6 @@
 		<tr>
 			<td class="content-block">
 				<span class="apple-link"><a href="<?php echo bloginfo('url'); ?>" target="_blank"><?php echo bloginfo('name'); ?></a></span>
-				<!--<br> Don't like these emails? <a href="http://i.imgur.com/CScmqnj.gif">Unsubscribe</a>-->.
 			</td>
 		</tr>
 	</table>
