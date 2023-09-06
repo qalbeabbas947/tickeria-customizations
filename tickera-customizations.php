@@ -79,9 +79,7 @@ class Tickera_Customization {
 
         if( file_exists( TC_INCLUDES_DIR.'template-pages.php' ) ) {
             require_once( TC_INCLUDES_DIR . 'template-pages.php' );
-        }   
-		
-		     
+        }       
     }
 
     /**
@@ -150,95 +148,90 @@ class Tickera_Customization {
 	/**
 	 * Return orders of an email
 	 */
-	function get_orders_by_billing_email($user_email) {
+	public function get_orders_by_billing_email( $user_email ) {
+		
 		$query = new WC_Order_Query();
 		$query->set( 'customer', $user_email );
 		return $orders = $query->get_orders();
 	}
 
 	/**
-     * generate token and send email.
+     * generate token and send email from front-end.
      */
-	function tc_customization_token_generator() {
+	public function tc_customization_token_generator() {
 		
 		global $wpdb;
 
-		$email_for_token 	= sanitize_text_field($_REQUEST['email_for_token']);
-		$user = get_user_by('email', $email_for_token);
-		$user_id = '0';
-		$user_email = '';
-		$is_billing_email = false;
-		if( $user ) {
-			$user_id = $user->ID;
-			$user_name = $user->user_login;
-			$user_email = $user->user_email;
-		} else {
-			$orders = $this->get_orders_by_billing_email($email_for_token);
-			if( count($orders) > 0 ) {
-				$user_email = $email_for_token;
-				$user_name = $orders[0]->get_billing_first_name().' '.$orders[0]->get_billing_last_name();
-				$is_billing_email = true;
-			}
-		}
-		
-		$token = '';
-		if($user || $is_billing_email ) {
-			$_access 		=  $wpdb->get_results( $wpdb->prepare('select * from '.$wpdb->prefix.'tc_attendee_tokens where  (user_id=%d or user_email=%s)', $user_id , $user_email ) );
-			if( !empty($_access) && count($_access) > 0 ) {
-				if( time() >= strtotime( $_access[0]->expiry_date ) ) {
-					$token = md5(time() + $user_id);
-					$wpdb->update($wpdb->prefix.'tc_attendee_tokens',
-						[
-							'expiry_date' => date('Y-m-d H:i:s', strtotime('+1 Day')),
-							'token' => $token
-						], [ 'id'=> $_access[0]->id]
-					);	
-					$this->tc_send_token_gen_email($user_name, $user_email, $token);
-					echo json_encode(['status'=>'success', 'message'=>__('Your updated login link is sent to your Email address.', 'cs_ld_addon')]);
-					
-				} else {
-					$token = $_access[0]->token;
-					$this->tc_send_token_gen_email($user_name, $user_email, $token);
-					echo json_encode(['status'=>'success', 'message'=>__('Your login link is already active. An Email with your current login link was sent to your email address.', 'cs_ld_addon')]);
-				}
+		$email_for_token 	= sanitize_email( $_REQUEST['email_for_token'] );
+		if( !is_email( $email_for_token ) ) {
 
-			} else {
-				$token = md5(time() . $user_id);
-				$sql_query = "insert into ".$wpdb->prefix."tc_attendee_tokens(user_id,user_email,token,issue_date,expiry_date) values('".$user_id."','".$user_email."','".$token."','".date('Y-m-d H:i:s')."','".date('Y-m-d H:i:s', strtotime('+1 Day'))."')";
-				$wpdb->query($sql_query);
-				$this->tc_send_token_gen_email($user_name, $user_email, $token);
-				echo json_encode(['status'=>'success', 'message'=>__('We have successfully sent a new login link to your email address.', 'cs_ld_addon')]);
-				
-			}
-		} else {
-			echo json_encode(['status'=>'failed', 'message'=>__('The entered email does not exist for a Preferred Table.', 'cs_ld_addon')]);
+			echo json_encode( [ 'status'=>'failed', 'message'=>__( 'Entered email is not correct.', TC_TEXT_DOMAIN ) ] );
+			exit;
 		}
-		exit;
+
+		$orders = $this->get_orders_by_billing_email( $email_for_token );
+		if( count( $orders ) < 1 ) {
+
+			echo json_encode( [ 'status'=>'failed', 'message'=>__( 'Order not found.', TC_TEXT_DOMAIN ) ] );
+			exit;
+		}
+			
+		$user_email = $email_for_token;
+		$user_name = $orders[0]->get_billing_first_name().' '.$orders[0]->get_billing_last_name();
+		
+		$_access = $wpdb->get_results( $wpdb->prepare( 'select id,expiry_date,token from '.$wpdb->prefix.'tc_attendee_tokens where user_email=%s', $user_email ) );
+		if( empty( $_access ) || count( $_access ) < 1 ) {
+			
+			$token = md5( time() );
+			$sql_query = "insert into ".$wpdb->prefix."tc_attendee_tokens(user_id,user_email,token,issue_date,expiry_date) values('0','".$user_email."','".$token."','".date('Y-m-d H:i:s')."','".date('Y-m-d H:i:s', strtotime('+1 Day'))."')";
+			$wpdb->query( $sql_query );
+			$this->tc_send_token_gen_email( $user_name, $user_email, $token );
+			echo json_encode( [ 'status'=>'success', 'message'=>__( 'We have successfully sent a new login link to your email address.', TC_TEXT_DOMAIN ) ] );
+			exit;
+		}
+
+		if( time() >= strtotime( $_access[0]->expiry_date ) ) {
+			$token = md5( time() );
+			$wpdb->update( $wpdb->prefix.'tc_attendee_tokens',
+				[
+					'expiry_date' => date( 'Y-m-d H:i:s', strtotime( '+1 Day' ) ),
+					'token' => $token
+				], 
+				[ 'id'=> $_access[0]->id ]
+			);	
+			$this->tc_send_token_gen_email( $user_name, $user_email, $token );
+			echo json_encode( [ 'status'=>'success', 'message'=>__( 'Your updated login link is sent to your Email address.', TC_TEXT_DOMAIN ) ] );
+			exit;
+
+		} else {
+
+			$token = $_access[0]->token;
+			$this->tc_send_token_gen_email( $user_name, $user_email, $token );
+			echo json_encode( [ 'status'=>'success', 'message'=>__( 'Your login link is already active. An Email with your current login link was sent to your email address.', TC_TEXT_DOMAIN ) ] );
+			exit;
+		}
 	}
 
 	/**
 	 * Send token generation email.
 	 */
-	function tc_send_token_gen_email($user_name, $user_email, $token) {
+	public function tc_send_token_gen_email($user_name, $user_email, $token) {
 
-		
-		$subject  = get_option('tc_token_generation_subject');
-		if(empty($subject)) {
+		$subject = get_option( 'tc_token_generation_subject' );
+		if( empty( $subject ) ) {
 			$subject  = __('Round Table Token Generation', TC_TEXT_DOMAIN );
 		}
 		
-		$message  = get_option('tc_token_generation_body');
+		$message = get_option( 'tc_token_generation_body' );
 		if(empty($message)) {
-			$message  = __('<p>Dear [user_login],</p><p>Your token is generated successfully. Please, click <a href="[round_table_orders_link]">here</a> to view the available round table orders.</p><p>Thank You</p>', TC_TEXT_DOMAIN);
+			$message  = __( '<p>Dear [user_login],</p><p>Your token is generated successfully. Please, click <a href="[round_table_orders_link]">here</a> to view the available round table orders.</p><p>Thank You</p>', TC_TEXT_DOMAIN );
 		}
 		
-		$tc_roundtable_main_page 	= get_option( 'tc_roundtable_main_page' );
-		$round_table_orders_link = get_permalink($tc_roundtable_main_page);
-		$round_table_orders_link = add_query_arg('tctoken', $token, $round_table_orders_link);
-
+		$tc_roundtable_main_page = get_option( 'tc_roundtable_main_page' );
+		$round_table_orders_link = get_permalink( $tc_roundtable_main_page );
+		$round_table_orders_link = add_query_arg( 'tctoken', $token, $round_table_orders_link );
 		
-		
-		$subject = str_replace(array(
+		$subject = str_replace( array(
 			'[user_login]',
 			'[round_table_orders_link]',
 		), array(
@@ -259,19 +252,18 @@ class Tickera_Customization {
 
 		ob_start();
 		include_once $message_template_header;
-		echo wpautop($message);
+		echo wpautop( $message );
 		include_once $message_template_footer;
 		$message = ob_get_clean();
 
-		$site_name = get_option('blogname');
-		$admin_email = get_option('admin_email');
+		$site_name = get_option( 'blogname' );
+		$admin_email = get_option( 'admin_email' );
 		
 		$headers = [];
 		$headers[] = "From: {$site_name} <{$admin_email}>";
 		$headers[] = "Content-Type: text/html; charset=UTF-8"; 
 		
-		return wp_mail($user_email, $subject, $message, $headers);
-
+		return wp_mail( $user_email, $subject, $message, $headers );
 	}
 
 	/**
@@ -310,7 +302,7 @@ class Tickera_Customization {
 			foreach( $tc_attendee_id as $key => $aid ) {
 
 				if( !empty( $tc_first_name[$key] ) && !empty( $tc_last_name[$key] ) && is_email( $tc_email[$key] ) ) {
-					
+
 					update_post_meta( $tc_attendee_id[$key], 'first_name', sanitize_text_field( $tc_first_name[$key] ) );
 					update_post_meta( $tc_attendee_id[$key], 'last_name', sanitize_text_field( $tc_last_name[$key] ) );
 					update_post_meta( $tc_attendee_id[$key], 'owner_email', sanitize_email( $tc_email[$key] ) );

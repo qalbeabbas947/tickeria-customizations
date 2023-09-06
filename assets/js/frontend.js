@@ -15,33 +15,20 @@
              */
             generateToken: function() {
 
-                $('#tc_email_for_token_form').on( 'submit', function (e) {
-					e.preventDefault();
-					var email_for_token 	= $('#tc_email_for_token').val();
+                $( '#tc_email_for_token_form' ).on( 'submit', function(e) {
 					
-					$( '#tc_order_attendee_message' ).css('display', 'none').html('');
-                    // AJAX Request to apply coupon code to the cart
+                    e.preventDefault();
+					var email_for_token = $( '#tc_email_for_token' ).val();
+					$( '#tc_order_attendee_message' ).css( 'display', 'none' ).html( '' );
+                    $( '#tc-attendee-listing' ).css( 'opacity', '0.3' );
                     var data = {
                         email_for_token: email_for_token,
                         action: 'tc_customization_token_generator'
                     };
 
-                    $.ajax({
-                        type: 'post',
-                        url: TC_Customization.ajaxURL,
-                        data: data,
-						
-				        dataType: "json",
-                        beforeSend: function (response) {
-                            $('#tc-attendee-listin').css('opacity', '0.3');
-                        },
-                        complete: function (response) {
-                            $('#tc-attendee-listin').css('opacity', '1');
-                        },
-                        success: function (response) {
-							$( '#tc_order_attendee_message' ).css('display', 'block').addClass('tc_order_attendee_'+response.status).html( response.message );
-						}
-
+                    jQuery.post( TC_Customization.ajaxURL, data, function( response ) {
+                        $('#tc-attendee-listing').css( 'opacity', '1' );
+                        $( '#tc_order_attendee_message' ).css( 'display', 'block' ).addClass( 'tc_order_attendee_'+response.status ).html( response.message );
                     });
 				});
             },
