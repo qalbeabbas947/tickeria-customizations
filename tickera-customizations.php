@@ -339,70 +339,58 @@ class Tickera_Customization {
 		return $order_is_paid;
 	}
 
-	function tc_customization_token_generator_admin() {
+	/**
+	 * Generate token from order edit page
+	 */
+	public function tc_customization_token_generator_admin() {
 		
 		global $wpdb;
-		// Make your response and echo it.
-		$order_id 	= sanitize_text_field($_REQUEST['order_id']);
-		$user_id 	= sanitize_text_field($_REQUEST['user_id']);
-
-		$user_email = '';
-		$user_name = '';
-		$is_billing_email = false;
-		if( intval($user_id) > 0 ) {
-			$user 			= get_userdata($user_id);
-			if( $user ) {
-				$user_id 		= $user->ID;
-				$user_name 		= $user->user_login;
-				$user_email 	= $user->user_email;
-			}
-		} 
 		
-		if(empty($user_email)) {
-			$order = wc_get_order($order_id);
-			if( $order ) {
-				$user_email = $order->get_billing_email();
-				$user_name = $order->get_billing_first_name().' '.$order->get_billing_last_name();
-				$is_billing_email = true;
-			}
+		$order_id = sanitize_text_field( $_REQUEST['order_id'] );
+		$order = wc_get_order( $order_id );
+
+		if( !$order ) {
+			
+			echo json_encode( ['status'=>'success', 'message' => 'There is some glitch in this order.'] );
+			exit;
 		}
 
-		
+		$user_email = $order->get_billing_email();
+		$user_name = $order->get_billing_first_name().' '.$order->get_billing_last_name();
+
 		$token = '';
-		$_access 		=  $wpdb->get_results( $wpdb->prepare('select * from '.$wpdb->prefix.'tc_attendee_tokens where  (user_id=%d or user_email=%s)', $user_id, $user_email) );
-		if( !empty($_access) && count($_access) > 0 ) {
-			if( time() >= strtotime( $_access[0]->expiry_date ) ) {
-				$token = md5(time() + $user_id);
-				$wpdb->update($wpdb->prefix.'tc_attendee_tokens',
-					[
-						'expiry_date' => date('Y-m-d H:i:s', strtotime('+1 Day')),
-						'token' => $token
-					], [ 'id'=> $_access[0]->id]
-				);	
-				$this->tc_send_token_gen_email($user_name, $user_email, $token);
-				echo json_encode(['status'=>'success', 'message'=>'Your updated login link is sent to your Email address.']);
-			} else {
-				$token = $_access[0]->token;
-				$this->tc_send_token_gen_email($user_name, $user_email, $token);
-				echo json_encode(['status'=>'success', 'message'=>'Your login link is already active. An Email with your current login link was sent to your email address.']);
-			}
+		$_access = $wpdb->get_results( $wpdb->prepare('select id,expiry_date,token from '.$wpdb->prefix.'tc_attendee_tokens where user_email=%s', $user_email ) );
+		if( empty( $_access ) && count( $_access ) < 1 ) {
+			
+			$token = md5( time() );
+			$sql_query = "insert into ".$wpdb->prefix."tc_attendee_tokens(user_id,user_email,token,issue_date,expiry_date) values('0','".$user_email."','".$token."','".date('Y-m-d H:i:s')."','".date('Y-m-d H:i:s', strtotime('+1 Day'))."')";
+			$wpdb->query( $sql_query );
+			$this->tc_send_token_gen_email( $user_name, $user_email, $token );
+			echo json_encode( [ 'status' => 'success', 'message' => __( 'We have successfully sent a new login link to your email address.', TC_TEXT_DOMAIN ) ] );
+			exit;
+		}
+
+		if( time() >= strtotime( $_access[0]->expiry_date ) ) {
+			
+			$token = md5( time() );
+			$wpdb->update( $wpdb->prefix.'tc_attendee_tokens',
+				[
+					'expiry_date' => date( 'Y-m-d H:i:s', strtotime( '+1 Day' ) ),
+					'token' => $token
+				], 
+				[ 'id'=> $_access[0]->id ]
+			);	
+			$this->tc_send_token_gen_email( $user_name, $user_email, $token );
+			echo json_encode( [ 'status' => 'success', 'message' => __( 'Your updated login link is sent to your Email address.', TC_TEXT_DOMAIN ) ] );
+			exit;
 
 		} else {
-			$token = md5(time() . $user_id);
-			// $wpdb->insert($wpdb->prefix.'tc_attendee_tokens', [
-			// 							'user_id' => $user_id,
-			// 							'user_email'=>$user_email,
-			// 							'token' => $token,
-			// 							'issue_date' => date('Y-m-d H:i:s'),									
-			// 							'expiry_date' => date('Y-m-d H:i:s', strtotime("+1 Day"))								
-			// 						], ['%d', '%s', '%s', '%s'] );
-			$sql_query = "insert into ".$wpdb->prefix."tc_attendee_tokens(user_id,user_email,token,issue_date,expiry_date) values('".$user_id."','".$user_email."','".$token."','".date('Y-m-d H:i:s')."','".date('Y-m-d H:i:s', strtotime('+1 Day'))."')";
-			$wpdb->query($sql_query);
-			$this->tc_send_token_gen_email($user_name, $user_email, $token);
-			echo json_encode(['status'=>'success', 'message'=>'We have successfully sent a new login link to your email address.']);
-			
+
+			$token = $_access[0]->token;
+			$this->tc_send_token_gen_email( $user_name, $user_email, $token );
+			echo json_encode( [ 'status' => 'success', 'message' => __( 'Your login link is already active. An Email with your current login link was sent to your email address.', TC_TEXT_DOMAIN ) ] );
+			exit;
 		}
-		exit;
 	}
 	
 	/**
