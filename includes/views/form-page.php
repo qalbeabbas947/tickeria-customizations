@@ -80,9 +80,9 @@
 											<?php if( strtotime( $round_table_expiry ) > time() ) { 
 												$editable++; ?>
 												<input type="hidden" name="tc_attendee_id[]" id="tc_attendee_id" value="<?php echo $attendee_id; ?>" />
-												<td><input type="text" name="tc_first_name[]" id="tc_first_name" value="<?php echo $first_name; ?>" /></td>
-												<td><input type="text" name="tc_last_name[]" id="tc_last_name" value="<?php echo $last_name; ?>" /></td>
-												<td><input type="text" name="tc_owner_email[]" id="tc_owner_email" value="<?php echo $owner_email; ?>" /></td>
+												<td><input type="text" required name="tc_first_name[]" id="tc_first_name" value="<?php echo $first_name; ?>" /></td>
+												<td><input type="text" required name="tc_last_name[]" id="tc_last_name" value="<?php echo $last_name; ?>" /></td>
+												<td><input type="email" required name="tc_owner_email[]" id="tc_owner_email" value="<?php echo $owner_email; ?>" /></td>
 											<?php } else { ?>
 												<td><?php echo $first_name ;?></td>
 												<td><?php echo $last_name ;?></td>
