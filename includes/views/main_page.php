@@ -15,14 +15,13 @@ global $wpdb;
 get_header(); 
 
 $token = isset( $_REQUEST['tctoken'] ) && ! empty( $_REQUEST['tctoken'] ) ? sanitize_text_field( $_REQUEST['tctoken'] ) : '';
-$_access =  $wpdb->get_row( $wpdb->prepare('select * from '.$wpdb->prefix.'tc_attendee_tokens where expiry_date > now() and token=%s', $token ) );
+$_access =  $wpdb->get_row( $wpdb->prepare('select user_id,user_email from '.$wpdb->prefix.'tc_attendee_tokens where expiry_date > now() and token=%s', $token ) );
 
 if( !empty( $_access ) ) {
 	
 	$user_id = $_access->user_id;
 	$user_email = $_access->user_email;
-	$issue_date = $_access->issue_date;
-	$expiry_date = $_access->expiry_date;
+	
 	if( intval( $user_id ) > 0 ) {
 		
 		$args = array(
