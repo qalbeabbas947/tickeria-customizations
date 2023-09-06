@@ -33,19 +33,19 @@
 
     <div class="tc-front-container">
         <div class="tc-front-area">
-            <h1><?php _e('Round Table Orders', 'TC');?></h1>
-			<a href="<?php echo $url;?>"><?php _e('Back', 'TC');?></a>
+            <h1><?php _e('Round Table Orders', TC_TEXT_DOMAIN);?></h1>
+			<a href="<?php echo $url;?>"><?php _e('Back', TC_TEXT_DOMAIN);?></a>
 			<div id="tc_order_attendee_message"></div>
 			<form id="tc-product-attendees-form">
 				<table id="tc-attendee-listing">
 				  <tr>
-					<th><?php _e('Attendee ID', 'TC');?></th>
-					<th><?php _e('Event ID', 'TC');?></th>
-					<th><?php _e('Ticket Code', 'TC');?></th>				
-					<th><?php _e('Type ID', 'TC');?></th>
-					<th><?php _e('First Name', 'TC');?></th>
-					<th><?php _e('Last Name', 'TC');?></th>
-					<th><?php _e('Email', 'TC');?></th>
+					<th><?php _e('Attendee ID', TC_TEXT_DOMAIN);?></th>
+					<th><?php _e('Event ID', TC_TEXT_DOMAIN);?></th>
+					<th><?php _e('Ticket Code', TC_TEXT_DOMAIN);?></th>				
+					<th><?php _e('Type ID', TC_TEXT_DOMAIN);?></th>
+					<th><?php _e('First Name', TC_TEXT_DOMAIN);?></th>
+					<th><?php _e('Last Name', TC_TEXT_DOMAIN);?></th>
+					<th><?php _e('Email', TC_TEXT_DOMAIN);?></th>
 				  </tr>
 				  <input type="hidden" name="tctoken" id="tctoken" value="<?php echo $token;?>" />
 				  <input type="hidden" name="tc_order_id" id="tc_order_id" value="<?php echo $order_id;?>" />
@@ -99,7 +99,7 @@
 							?>
 								<tr>
 									<td colspan="7" align="center">
-										<button type="submit" class="btn btn-primary tc-attendee-button" id="btn_tc_update_attendees"><?php _e('Update', 'TC');?></button>
+										<button type="submit" class="btn btn-primary tc-attendee-button" id="btn_tc_update_attendees"><?php _e('Update', TC_TEXT_DOMAIN);?></button>
 									</td>
 								</tr>
 							<?php
@@ -114,7 +114,7 @@
 
 <?php 
 	} else {
-		echo '<div class="tc_order_attendee_failed">'.__('Invalid or expired token!', 'TC').'</div>';
+		echo '<div class="tc_order_attendee_failed">'.__('Invalid or expired token!', TC_TEXT_DOMAIN).'</div>';
 	}
 	get_footer();
 ?>

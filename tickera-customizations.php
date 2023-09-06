@@ -628,7 +628,7 @@ class Tickera_Customization {
 
         wp_localize_script( 'tc-admin-js', 'TC_Customization', [
             'ajaxURL'       => admin_url( 'admin-ajax.php' ),
-            'save_label' => __( 'Save', 'TC' ),
+            'save_label' => __( 'Save', TC_TEXT_DOMAIN ),
            
         ] );
     }
@@ -697,7 +697,7 @@ class Tickera_Customization {
 				add_filter( 'wp_mail_from', 'attendee_email_from_email', 999 );
 				add_filter( 'wp_mail_from_name', 'attendee_email_from_name', 999 );
 		
-				$subject = isset( $tc_email_settings[ 'attendee_order_subject' ] ) ? $tc_email_settings[ 'attendee_order_subject' ] : __( 'Your Ticket is here!', 'tc' );
+				$subject = isset( $tc_email_settings[ 'attendee_order_subject' ] ) ? $tc_email_settings[ 'attendee_order_subject' ] : __( 'Your Ticket is here!', TC_TEXT_DOMAIN );
 				$default_message = 'Hello, <br /><br />You can download ticket for EVENT_NAME here DOWNLOAD_URL';
 				$order = new TC_Order( $order_id );
 		
@@ -898,7 +898,7 @@ function tc_maybe_send_order_paid_attendee_email_customized( $wc_order ) {
 			add_filter( 'wp_mail_from', 'attendee_email_from_email', 999 );
 			add_filter( 'wp_mail_from_name', 'attendee_email_from_name', 999 );
 
-			$subject = isset( $tc_email_settings[ 'attendee_order_subject' ] ) ? $tc_email_settings[ 'attendee_order_subject' ] : __( 'Your Ticket is here!', 'tc' );
+			$subject = isset( $tc_email_settings[ 'attendee_order_subject' ] ) ? $tc_email_settings[ 'attendee_order_subject' ] : __( 'Your Ticket is here!', TC_TEXT_DOMAIN );
 			$default_message = 'Hello, <br /><br />You can download ticket for EVENT_NAME here DOWNLOAD_URL';
 			$order = new TC_Order( $order_id );
 

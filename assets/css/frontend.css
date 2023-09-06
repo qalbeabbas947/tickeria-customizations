@@ -1,3 +1,29 @@
+/* Create two equal columns that floats next to each other */
+.tc-product-row {
+	display: flex;
+	width: 100%;
+	flex-wrap: wrap;
+}
+.tc-product-column {
+	padding: 6px;
+	margin: 10px;
+	border-radius:5px;
+	border: 1px solid #ccc;
+	width: 29%;
+}
+.tc-front-area a:hover {
+	text-decoration: underline;
+}
+@media screen and (max-width: 1000px) {
+  .tc-product-column {
+    width: 44%;
+  }
+}
+@media screen and (max-width: 600px) {
+  .tc-product-column {
+    width: 100%;
+  }
+}
 #tc-attendee-listing {
   font-family: Arial, Helvetica, sans-serif;
   border-collapse: collapse;

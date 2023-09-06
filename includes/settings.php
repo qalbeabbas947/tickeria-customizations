@@ -28,8 +28,8 @@ class Tickera_Customization_Settings {
          */
         add_submenu_page(
             'woocommerce',
-            __( 'Tickera Settings', 'TC' ),
-            __( 'Tickera Settings', 'TC' ),
+            __( 'Tickera Settings', TC_TEXT_DOMAIN ),
+            __( 'Tickera Settings', TC_TEXT_DOMAIN ),
             'manage_options',
             'tc-customization-settngs',
             [ $this, 'load_setting_menu' ]
