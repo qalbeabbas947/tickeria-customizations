@@ -21,21 +21,20 @@ if( !empty( $_access ) ) {
 	
 	$user_id = $_access->user_id;
 	$user_email = $_access->user_email;
-	
-	if( intval( $user_id ) > 0 ) {
-		
+	if( !empty($user_email) && is_email($user_email) ) {
+
+		$query = new WC_Order_Query();
+		$query->set( 'customer', $user_email );
+		$orders = $query->get_orders();
+	} else {
 		$args = array(
 			'customer_id' => $user_id,
 			'limit' => -1,
 		);
 
 		$orders = wc_get_orders( $args );
-	} else {
-
-		$query = new WC_Order_Query();
-		$query->set( 'customer', $user_email );
-		$orders = $query->get_orders();
-	} ?>
+	}
+	?>
 
 	<div class="tc-front-container">
 		<div class="tc-front-area">
@@ -50,10 +49,12 @@ if( !empty( $_access ) ) {
 					<th><?php _e( 'View', TC_TEXT_DOMAIN );?></th>
 				</tr>
 				<?php
+				
 				foreach( $orders as $order ) {
-
+					
 					$order_id = $order->get_id();
 					foreach( $order->get_items( ['line_item'] ) as $item_id => $item ) {
+						
                         $item_product_id = $item->get_product_id();
                         $is_round_table = get_post_meta( $item_product_id, '_is_round_table', true );
                         if( intval( $is_round_table ) == 1 ) {
