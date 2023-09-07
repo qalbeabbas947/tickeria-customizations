@@ -16,19 +16,19 @@
             generateToken: function() {
 
                 $( '#tc_email_for_token_form' ).on( 'submit', function(e) {
-					
                     e.preventDefault();
 					var email_for_token = $( '#tc_email_for_token' ).val();
 					$( '#tc_order_attendee_message' ).css( 'display', 'none' ).html( '' );
                     $( '#tc-attendee-listing' ).css( 'opacity', '0.3' );
                     var data = {
                         email_for_token: email_for_token,
-                        action: 'tc_customization_token_generator'
+                        action: 'tc_customization_token_generator' 
                     };
 
                     jQuery.post( TC_Customization.ajaxURL, data, function( response ) {
+                        var obj = jQuery.parseJSON( response );
                         $('#tc-attendee-listing').css( 'opacity', '1' );
-                        $( '#tc_order_attendee_message' ).css( 'display', 'block' ).addClass( 'tc_order_attendee_'+response.status ).html( response.message );
+                        $( '#tc_order_attendee_message' ).css( 'display', 'block' ).addClass( 'tc_order_attendee_'+obj.status ).html( obj.message );
                     });
 				});
             },
