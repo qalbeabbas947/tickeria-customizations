@@ -128,6 +128,14 @@ class Tickera_Customization {
 		add_action( 'wp_ajax_tc_customization_token_generator_admin', [ $this, 'tc_customization_token_generator_admin' ] );
 		add_action( 'woocommerce_admin_order_data_after_order_details', [ $this, 'add_link_back_to_order' ], 10, 1 );
         
+		/**
+		 * Cron email testing hook
+		 */
+		
+		// if(isset($_REQUEST['tcrun']) && $_REQUEST['tcrun'] == 'now') {
+		// 	add_action('init', array( $this, 'process_attendees_email' ), 10, 0);
+		// }
+
        /**
 		* To display and save tickeria custom fields on product edit page.
 	    */
@@ -138,15 +146,30 @@ class Tickera_Customization {
 		 * To send round table email when status is set to processing.
 		 */
 		add_action('woocommerce_order_status_processing', [ $this, 'woocommerce_order_status_completed_callback' ], 10, 1 );
-	
+		//add_filter('cron_schedules', [ $this, 'my_cron_schedules' ], 9999, 1);
 		add_action( 'tc_process_attendees_emails', [ $this, 'process_attendees_email' ] );
 		if ( ! wp_next_scheduled( 'tc_process_attendees_emails' ) ) {
-			wp_schedule_event( time(), 'daily', 'tc_process_attendees_emails' );
+			wp_schedule_event( time(), 'hourly', 'tc_process_attendees_emails' );
 		}
 		
 		add_shortcode( 'Ticket_Token_Generator', [ $this,'tc_token_generator' ] );
 		add_filter( 'tc_order_is_paid', [ $this,'tc_order_is_paid_callback' ], 9999, 2 );
 	}
+
+	/**
+	 * Cron test schedules of 5mins.
+	 */
+	function my_cron_schedules($schedules){
+		
+		if(!isset($schedules["5min"])){
+			$schedules["5min"] = array(
+				'interval' => 5*60,
+				'display' => __('Once every 5 minutes'));
+		}
+		
+		return $schedules;
+	}
+	
 
 	/**
 	 * Add link to generate token id from order edit page.
@@ -450,7 +473,7 @@ class Tickera_Customization {
 			return false;
 		}
 		
-		$_access =  $wpdb->get_results( $wpdb->prepare('select * from '.$wpdb->prefix.'tc_attendee_tokens where expiry_date>now() and (user_id=%d or user_email=%s)', $order->get_user_id(), $order->get_billing_email() ) );
+		$_access =  $wpdb->get_results( $wpdb->prepare('select * from '.$wpdb->prefix.'tc_attendee_tokens where expiry_date>now() and (user_id=%d and user_email=%s)', $order->get_user_id(), $order->get_billing_email() ) );
 		if( !empty( $_access ) && count( $_access ) > 0 ) {
 			$token = $_access[0]->token;
 		} else {
