@@ -111,7 +111,8 @@ class Tickera_Customization {
      * Plugin Hooks
      */
     private function hooks() {
-
+		ini_set('display_errors', 'On');
+		error_reporting(E_ALL);
 		/**
 		 * Enqueue scripts
 		 */
@@ -119,7 +120,11 @@ class Tickera_Customization {
         add_action( 'admin_enqueue_scripts', [ $this, 'tc_add_admin_scripts' ] );
 
         add_action( 'wp_ajax_nopriv_tc_customization_attendee_update', [ $this, 'tc_customization_attendee_update' ] );
+		add_action( 'wp_ajax_tc_customization_attendee_update', [ $this, 'tc_customization_attendee_update' ] );
+
 		add_action( 'wp_ajax_nopriv_tc_customization_token_generator', [ $this, 'tc_customization_token_generator' ] );
+		add_action( 'wp_ajax_tc_customization_token_generator', [ $this, 'tc_customization_token_generator' ] );
+
 		add_action( 'wp_ajax_tc_customization_token_generator_admin', [ $this, 'tc_customization_token_generator_admin' ] );
 		add_action( 'woocommerce_admin_order_data_after_order_details', [ $this, 'add_link_back_to_order' ], 10, 1 );
         
@@ -173,21 +178,21 @@ class Tickera_Customization {
 	public function tc_customization_token_generator() {
 		
 		global $wpdb;
-
+		
 		$email_for_token 	= sanitize_email( $_REQUEST['email_for_token'] );
 		if( !is_email( $email_for_token ) ) {
 
 			echo json_encode( [ 'status'=>'failed', 'message'=>__( 'Entered email is not correct.', TC_TEXT_DOMAIN ) ] );
 			exit;
 		}
-
+		
 		$orders = $this->get_orders_by_billing_email( $email_for_token );
 		if( count( $orders ) < 1 ) {
 
 			echo json_encode( [ 'status'=>'failed', 'message'=>__( 'Order not found.', TC_TEXT_DOMAIN ) ] );
 			exit;
 		}
-			
+		
 		$user_email = $email_for_token;
 		$user_name = $orders[0]->get_billing_first_name().' '.$orders[0]->get_billing_last_name();
 		
@@ -201,7 +206,7 @@ class Tickera_Customization {
 			echo json_encode( [ 'status'=>'success', 'message'=>__( 'We have successfully sent a new login link to your email address.', TC_TEXT_DOMAIN ) ] );
 			exit;
 		}
-
+		
 		if( time() >= strtotime( $_access[0]->expiry_date ) ) {
 			$token = md5( time() );
 			$wpdb->update( $wpdb->prefix.'tc_attendee_tokens',
@@ -360,8 +365,8 @@ class Tickera_Customization {
 		
 		$order_id = sanitize_text_field( $_REQUEST['order_id'] );
 		$order = wc_get_order( $order_id );
-
-		if( !$order ) {
+		
+		if( ! $order ) {
 			
 			echo json_encode( ['status'=>'success', 'message' => 'There is some glitch in this order.'] );
 			exit;
