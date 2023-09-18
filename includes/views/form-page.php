@@ -52,7 +52,7 @@
 							
 							<th><?php _e( 'Email', TC_TEXT_DOMAIN ); ?></th>
 						</tr>
-						
+						<tbody>
 						<?php
 							$order_attendees = TC_Orders::get_tickets_ids( $order_id );
 							if( is_array( $order_attendees ) && count( $order_attendees ) > 0 ) {
@@ -75,22 +75,35 @@
 									$round_table_expiry = get_post_meta( $ticket_type_id, '_round_table_expiry', true ); 	
 									
 									?>
+									
 										<tr>
+											<th style="display:none"><?php _e( 'Attendee ID', TC_TEXT_DOMAIN ); ?></th>
 											<td><?php echo $attendee_id; ?></td>
+											<th style="display:none"><?php _e( 'Event', TC_TEXT_DOMAIN ); ?></th>
 											<td><?php echo get_the_title( $event_id ); ?></td>
+											<th style="display:none"><?php _e( 'Ticket Code', TC_TEXT_DOMAIN ); ?></th>
 											<td><?php echo $ticket_code; ?></td>
+											<th style="display:none"><?php _e( 'Ticket Type', TC_TEXT_DOMAIN ); ?></th>
 											<td><?php echo get_the_title( $ticket_type_id ); ?></td>
 											<?php if( strtotime( $round_table_expiry ) > time() ) { 
 												$editable++; ?>
 												<input type="hidden" name="tc_attendee_id[]" id="tc_attendee_id" value="<?php echo $attendee_id; ?>" />
+												<th style="display:none"><?php _e( 'First Name', TC_TEXT_DOMAIN ); ?></th>
 												<td><input type="text" required name="tc_first_name[]" id="tc_first_name" value="<?php echo $first_name; ?>" /></td>
+												<th style="display:none"><?php _e( 'Last Name', TC_TEXT_DOMAIN ); ?></th>
 												<td><input type="text" required name="tc_last_name[]" id="tc_last_name" value="<?php echo $last_name; ?>" /></td>
+												<th style="display:none"><?php _e( 'Phone', TC_TEXT_DOMAIN ); ?></th>
 												<td><input type="text" name="tc_owner_phone[]" id="tc_owner_phone" value="<?php echo $owner_phone; ?>" /></td>
+												<th style="display:none"><?php _e( 'Email', TC_TEXT_DOMAIN ); ?></th>
 												<td><input type="email" required name="tc_owner_email[]" id="tc_owner_email" value="<?php echo $owner_email; ?>" /></td>
 											<?php } else { ?>
+												<th style="display:none"><?php _e( 'First Name', TC_TEXT_DOMAIN ); ?></th>
 												<td><?php echo $first_name ;?></td>
+												<th style="display:none"><?php _e( 'Last Name', TC_TEXT_DOMAIN ); ?></th>
 												<td><?php echo $last_name ;?></td>
+												<th style="display:none"><?php _e( 'Phone', TC_TEXT_DOMAIN ); ?></th>
 												<td><?php echo $owner_phone ;?></td>
+												<th style="display:none"><?php _e( 'Email', TC_TEXT_DOMAIN ); ?></th>
 												<td><?php echo $owner_email ;?></td>
 											<?php } ?>
 										</tr>
@@ -113,6 +126,7 @@
 								}
 							}
 						?>
+						</tbody>
 						</table>
 					</form>
 				</div>
