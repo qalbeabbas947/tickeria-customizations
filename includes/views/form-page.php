@@ -41,92 +41,94 @@
 					<div id="tc_order_attendee_message"></div>
 					<form id="tc-product-attendees-form">
 						<table id="tc-attendee-listing">
-						<tr>
-							<th><?php _e( 'Attendee ID', TC_TEXT_DOMAIN ); ?></th>
-							<th><?php _e( 'Event', TC_TEXT_DOMAIN ); ?></th>
-							<th><?php _e( 'Ticket Code', TC_TEXT_DOMAIN ); ?></th>				
-							<th><?php _e( 'Product', TC_TEXT_DOMAIN ); ?></th>
-							<th><?php _e( 'First Name', TC_TEXT_DOMAIN ); ?></th>
-							<th><?php _e( 'Last Name', TC_TEXT_DOMAIN ); ?></th>
-							<th><?php _e( 'Phone', TC_TEXT_DOMAIN ); ?></th>
-							
-							<th><?php _e( 'Email', TC_TEXT_DOMAIN ); ?></th>
-						</tr>
-						<tbody>
-						<?php
-							$order_attendees = TC_Orders::get_tickets_ids( $order_id );
-							if( is_array( $order_attendees ) && count( $order_attendees ) > 0 ) {
-								
-								$editable = 0;
-								foreach( $order_attendees as $attendee_id ) {
+							<thead>
+								<tr>
+									<th><?php _e( 'Attendee ID', TC_TEXT_DOMAIN ); ?></th>
+									<th><?php _e( 'Event', TC_TEXT_DOMAIN ); ?></th>
+									<th><?php _e( 'Ticket Code', TC_TEXT_DOMAIN ); ?></th>				
+									<th><?php _e( 'Product', TC_TEXT_DOMAIN ); ?></th>
+									<th><?php _e( 'First Name', TC_TEXT_DOMAIN ); ?></th>
+									<th><?php _e( 'Last Name', TC_TEXT_DOMAIN ); ?></th>
+									<th><?php _e( 'Phone', TC_TEXT_DOMAIN ); ?></th>
+									
+									<th><?php _e( 'Email', TC_TEXT_DOMAIN ); ?></th>
+								</tr>
+							</thead>
+							<tbody>
+							<?php
+								$order_attendees = TC_Orders::get_tickets_ids( $order_id );
+								if( is_array( $order_attendees ) && count( $order_attendees ) > 0 ) {
+									
+									$editable = 0;
+									foreach( $order_attendees as $attendee_id ) {
 
-									$ticket_type_id = get_post_meta( $attendee_id, 'ticket_type_id', true );
-									if( $ticket_type_id !=  $pid ) {
-										continue;
+										$ticket_type_id = get_post_meta( $attendee_id, 'ticket_type_id', true );
+										if( $ticket_type_id !=  $pid ) {
+											continue;
+										}
+
+										$ticket_code = get_post_meta( $attendee_id, 'ticket_code', true );		
+										$event_id = get_post_meta( $attendee_id, 'event_id', true );
+										$item_id = get_post_meta( $attendee_id, 'item_id', true );
+										$first_name = get_post_meta( $attendee_id, 'first_name', true );
+										$last_name = get_post_meta( $attendee_id, 'last_name', true );
+										$owner_email = get_post_meta( $attendee_id, 'owner_email', true );	
+										$owner_phone = get_post_meta( $attendee_id, 'tc_ff_phonenumber_tcfn_5013', true );	
+										$round_table_expiry = get_post_meta( $ticket_type_id, '_round_table_expiry', true ); 	
+										
+										?>
+										
+											<tr>
+												<th style="display:none"><?php _e( 'Attendee ID', TC_TEXT_DOMAIN ); ?></th>
+												<td><?php echo $attendee_id; ?></td>
+												<th style="display:none"><?php _e( 'Event', TC_TEXT_DOMAIN ); ?></th>
+												<td><?php echo get_the_title( $event_id ); ?></td>
+												<th style="display:none"><?php _e( 'Ticket Code', TC_TEXT_DOMAIN ); ?></th>
+												<td><?php echo $ticket_code; ?></td>
+												<th style="display:none"><?php _e( 'Ticket Type', TC_TEXT_DOMAIN ); ?></th>
+												<td><?php echo get_the_title( $ticket_type_id ); ?></td>
+												<?php if( strtotime( $round_table_expiry ) > time() ) { 
+													$editable++; ?>
+													<input type="hidden" name="tc_attendee_id[]" id="tc_attendee_id" value="<?php echo $attendee_id; ?>" />
+													<th style="display:none"><?php _e( 'First Name', TC_TEXT_DOMAIN ); ?></th>
+													<td><input type="text" required name="tc_first_name[]" id="tc_first_name" value="<?php echo $first_name; ?>" /></td>
+													<th style="display:none"><?php _e( 'Last Name', TC_TEXT_DOMAIN ); ?></th>
+													<td><input type="text" required name="tc_last_name[]" id="tc_last_name" value="<?php echo $last_name; ?>" /></td>
+													<th style="display:none"><?php _e( 'Phone', TC_TEXT_DOMAIN ); ?></th>
+													<td><input type="text" name="tc_owner_phone[]" id="tc_owner_phone" value="<?php echo $owner_phone; ?>" /></td>
+													<th style="display:none"><?php _e( 'Email', TC_TEXT_DOMAIN ); ?></th>
+													<td><input type="email" required name="tc_owner_email[]" id="tc_owner_email" value="<?php echo $owner_email; ?>" /></td>
+												<?php } else { ?>
+													<th style="display:none"><?php _e( 'First Name', TC_TEXT_DOMAIN ); ?></th>
+													<td><?php echo $first_name ;?></td>
+													<th style="display:none"><?php _e( 'Last Name', TC_TEXT_DOMAIN ); ?></th>
+													<td><?php echo $last_name ;?></td>
+													<th style="display:none"><?php _e( 'Phone', TC_TEXT_DOMAIN ); ?></th>
+													<td><?php echo $owner_phone ;?></td>
+													<th style="display:none"><?php _e( 'Email', TC_TEXT_DOMAIN ); ?></th>
+													<td><?php echo $owner_email ;?></td>
+												<?php } ?>
+											</tr>
+										<?php
 									}
 
-									$ticket_code = get_post_meta( $attendee_id, 'ticket_code', true );		
-									$event_id = get_post_meta( $attendee_id, 'event_id', true );
-									$item_id = get_post_meta( $attendee_id, 'item_id', true );
-									$first_name = get_post_meta( $attendee_id, 'first_name', true );
-									$last_name = get_post_meta( $attendee_id, 'last_name', true );
-									$owner_email = get_post_meta( $attendee_id, 'owner_email', true );	
-									$owner_phone = get_post_meta( $attendee_id, 'tc_ff_phonenumber_tcfn_5013', true );	
-									$round_table_expiry = get_post_meta( $ticket_type_id, '_round_table_expiry', true ); 	
-									
-									?>
-									
-										<tr>
-											<th style="display:none"><?php _e( 'Attendee ID', TC_TEXT_DOMAIN ); ?></th>
-											<td><?php echo $attendee_id; ?></td>
-											<th style="display:none"><?php _e( 'Event', TC_TEXT_DOMAIN ); ?></th>
-											<td><?php echo get_the_title( $event_id ); ?></td>
-											<th style="display:none"><?php _e( 'Ticket Code', TC_TEXT_DOMAIN ); ?></th>
-											<td><?php echo $ticket_code; ?></td>
-											<th style="display:none"><?php _e( 'Ticket Type', TC_TEXT_DOMAIN ); ?></th>
-											<td><?php echo get_the_title( $ticket_type_id ); ?></td>
-											<?php if( strtotime( $round_table_expiry ) > time() ) { 
-												$editable++; ?>
-												<input type="hidden" name="tc_attendee_id[]" id="tc_attendee_id" value="<?php echo $attendee_id; ?>" />
-												<th style="display:none"><?php _e( 'First Name', TC_TEXT_DOMAIN ); ?></th>
-												<td><input type="text" required name="tc_first_name[]" id="tc_first_name" value="<?php echo $first_name; ?>" /></td>
-												<th style="display:none"><?php _e( 'Last Name', TC_TEXT_DOMAIN ); ?></th>
-												<td><input type="text" required name="tc_last_name[]" id="tc_last_name" value="<?php echo $last_name; ?>" /></td>
-												<th style="display:none"><?php _e( 'Phone', TC_TEXT_DOMAIN ); ?></th>
-												<td><input type="text" name="tc_owner_phone[]" id="tc_owner_phone" value="<?php echo $owner_phone; ?>" /></td>
-												<th style="display:none"><?php _e( 'Email', TC_TEXT_DOMAIN ); ?></th>
-												<td><input type="email" required name="tc_owner_email[]" id="tc_owner_email" value="<?php echo $owner_email; ?>" /></td>
-											<?php } else { ?>
-												<th style="display:none"><?php _e( 'First Name', TC_TEXT_DOMAIN ); ?></th>
-												<td><?php echo $first_name ;?></td>
-												<th style="display:none"><?php _e( 'Last Name', TC_TEXT_DOMAIN ); ?></th>
-												<td><?php echo $last_name ;?></td>
-												<th style="display:none"><?php _e( 'Phone', TC_TEXT_DOMAIN ); ?></th>
-												<td><?php echo $owner_phone ;?></td>
-												<th style="display:none"><?php _e( 'Email', TC_TEXT_DOMAIN ); ?></th>
-												<td><?php echo $owner_email ;?></td>
-											<?php } ?>
-										</tr>
-									<?php
+									if( $editable > 0 ) {
+										?>
+											<tr>
+												<td colspan="8" align="center">
+													<input type="hidden" name="tctoken" id="tctoken" value="<?php echo $token;?>" />
+													<input type="hidden" name="tc_order_id" id="tc_order_id" value="<?php echo $order_id;?>" />
+													<input type="hidden" name="tc_pro_id" id="tc_pro_id" value="<?php echo $pid;?>" />
+													<input type="hidden" name="action" id="action" value="tc_customization_attendee_update" />
+													<input type="hidden" name="tc_reload" id="tc_reload" value="<?php echo $reload;?>" />
+													<button type="submit" class="btn btn-primary tc-attendee-button" id="btn_tc_update_attendees"><?php _e( 'Update', TC_TEXT_DOMAIN );?></button>
+												</td>
+											</tr>
+										<?php
+									}
 								}
-
-								if( $editable > 0 ) {
-									?>
-										<tr>
-											<td colspan="8" align="center">
-												<input type="hidden" name="tctoken" id="tctoken" value="<?php echo $token;?>" />
-												<input type="hidden" name="tc_order_id" id="tc_order_id" value="<?php echo $order_id;?>" />
-												<input type="hidden" name="tc_pro_id" id="tc_pro_id" value="<?php echo $pid;?>" />
-												<input type="hidden" name="action" id="action" value="tc_customization_attendee_update" />
-												<input type="hidden" name="tc_reload" id="tc_reload" value="<?php echo $reload;?>" />
-												<button type="submit" class="btn btn-primary tc-attendee-button" id="btn_tc_update_attendees"><?php _e( 'Update', TC_TEXT_DOMAIN );?></button>
-											</td>
-										</tr>
-									<?php
-								}
-							}
-						?>
-						</tbody>
+							?>
+							</tbody>
 						</table>
 					</form>
 				</div>

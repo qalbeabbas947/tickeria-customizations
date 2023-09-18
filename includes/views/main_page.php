@@ -40,49 +40,59 @@ if( !empty( $_access ) ) {
 		<div class="tc-front-area">
 			<h1><?php _e( 'Round Table Orders', TC_TEXT_DOMAIN );?></h1>
 			<table id="tc-attendee-listing">
-				<tr>
-					<th><?php _e( 'ID', TC_TEXT_DOMAIN );?></th>
-					<th><?php _e( 'Title', TC_TEXT_DOMAIN );?></th>
-					<th><?php _e( 'Total', TC_TEXT_DOMAIN );?></th>
-					<th><?php _e( 'Attendees', TC_TEXT_DOMAIN );?></th>				
-					<th><?php _e( 'Date', TC_TEXT_DOMAIN );?></th>
-					<th><?php _e( 'View', TC_TEXT_DOMAIN );?></th>
-				</tr>
-				<?php
-				
-				foreach( $orders as $order ) {
+				<thead>	
+					<tr>
+						<th><?php _e( 'ID', TC_TEXT_DOMAIN );?></th>
+						<th><?php _e( 'Title', TC_TEXT_DOMAIN );?></th>
+						<th><?php _e( 'Total', TC_TEXT_DOMAIN );?></th>
+						<th><?php _e( 'Attendees', TC_TEXT_DOMAIN );?></th>				
+						<th><?php _e( 'Date', TC_TEXT_DOMAIN );?></th>
+						<th><?php _e( 'View', TC_TEXT_DOMAIN );?></th>
+					</tr>
+				</thead>
+				<tbody>
+					<?php
 					
-					$order_id = $order->get_id();
-					foreach( $order->get_items( ['line_item'] ) as $item_id => $item ) {
+					foreach( $orders as $order ) {
 						
-                        $item_product_id = $item->get_product_id();
-                        $is_round_table = get_post_meta( $item_product_id, '_is_round_table', true );
-                        if( intval( $is_round_table ) == 1 ) {
-                            
-							$order_attendees = TC_Orders::get_tickets_ids( $order_id );
-							$tc_roundtable_sub_page = get_option( 'tc_roundtable_sub_page' );
-
-							$url = get_permalink( $tc_roundtable_sub_page );
-							$url = add_query_arg( 'tctoken', $token, $url );
-							$url = add_query_arg( 'oid', $order_id, $url );
+						$order_id = $order->get_id();
+						foreach( $order->get_items( ['line_item'] ) as $item_id => $item ) {
 							
-							if( is_array( $order_attendees ) && count( $order_attendees ) > 0 ) {
-								?>
-								<tr>
-									<td><?php echo $order_id;?></td>
-									<td><?php echo get_the_title( $order_id );?></td>
-									<td><?php echo $order->get_total();?></td>
-									<td><?php echo count( $order_attendees );?></td>
-									<td><?php echo $order->get_date_created();?></td>
-									<td><a href="<?php echo $url;?>"><?php _e( 'View', TC_TEXT_DOMAIN );?></a></td>
-								</tr>
-								<?php
+							$item_product_id = $item->get_product_id();
+							$is_round_table = get_post_meta( $item_product_id, '_is_round_table', true );
+							if( intval( $is_round_table ) == 1 ) {
+								
+								$order_attendees = TC_Orders::get_tickets_ids( $order_id );
+								$tc_roundtable_sub_page = get_option( 'tc_roundtable_sub_page' );
+
+								$url = get_permalink( $tc_roundtable_sub_page );
+								$url = add_query_arg( 'tctoken', $token, $url );
+								$url = add_query_arg( 'oid', $order_id, $url );
+								
+								if( is_array( $order_attendees ) && count( $order_attendees ) > 0 ) {
+									?>
+									<tr>
+										<th style="display:none"><?php _e( 'ID', TC_TEXT_DOMAIN );?></th>
+										<td><?php echo $order_id;?></td>
+										<th style="display:none"><?php _e( 'Title', TC_TEXT_DOMAIN );?></th>
+										<td><?php echo get_the_title( $order_id );?></td>
+										<th style="display:none"><?php _e( 'Total', TC_TEXT_DOMAIN );?></th>
+										<td><?php echo $order->get_total();?></td>
+										<th style="display:none"><?php _e( 'Attendees', TC_TEXT_DOMAIN );?></th>	
+										<td><?php echo count( $order_attendees );?></td>
+										<th style="display:none"><?php _e( 'Date', TC_TEXT_DOMAIN );?></th>
+										<td><?php echo $order->get_date_created();?></td>
+										<th style="display:none"><?php _e( 'View', TC_TEXT_DOMAIN );?></th>
+										<td><a href="<?php echo $url;?>"><?php _e( 'View', TC_TEXT_DOMAIN );?></a></td>
+									</tr>
+									<?php
+								}
+								break;
 							}
-							break;
-                        }
-                    }
-				}
-				?>
+						}
+					}
+					?>
+				</tbody>
 			</table>
 		</div>
 	</div><?php

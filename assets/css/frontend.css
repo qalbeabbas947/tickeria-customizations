@@ -81,21 +81,36 @@
   .tc-product-column {
     width: 44%;
   }
-  #tc-attendee-listing th {
+  #tc-attendee-listing thead th {
     display: none;
   }
+  
 }
 @media screen and (max-width: 600px) {
   .tc-product-column {
     width: 100%;
   }
-  #tc-attendee-listing th {
+  #tc-attendee-listing thead th {
     display: none;
   }
+  
 }
 
-@media screen and (min-width: 1001px) {
+@media screen and (max-width: 1000px) {
   #tc-attendee-listing tbody th {
+    display: block !important;
+  }
+  #tc-attendee-listing tbody td,  #tc-attendee-listing tbody th {
     display: block;
+    width:100%;
+    padding: 10px 8px;
+
+  }
+  #tc-attendee-listing tbody tr{
+    border-top: 2px dashed #02B5B1;
+    padding-top: 25px;
+    display: block;
+    margin-top: 25px;
+    background: none !important;
   }
 }
