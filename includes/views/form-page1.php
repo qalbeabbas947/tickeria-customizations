@@ -48,8 +48,6 @@
 							<th><?php _e( 'Product', TC_TEXT_DOMAIN ); ?></th>
 							<th><?php _e( 'First Name', TC_TEXT_DOMAIN ); ?></th>
 							<th><?php _e( 'Last Name', TC_TEXT_DOMAIN ); ?></th>
-							<th><?php _e( 'Phone', TC_TEXT_DOMAIN ); ?></th>
-							
 							<th><?php _e( 'Email', TC_TEXT_DOMAIN ); ?></th>
 						</tr>
 						
@@ -71,7 +69,6 @@
 									$first_name = get_post_meta( $attendee_id, 'first_name', true );
 									$last_name = get_post_meta( $attendee_id, 'last_name', true );
 									$owner_email = get_post_meta( $attendee_id, 'owner_email', true );	
-									$owner_phone = get_post_meta( $attendee_id, 'tc_ff_phonenumber_tcfn_5013', true );	
 									$round_table_expiry = get_post_meta( $ticket_type_id, '_round_table_expiry', true ); 	
 									
 									?>
@@ -85,12 +82,10 @@
 												<input type="hidden" name="tc_attendee_id[]" id="tc_attendee_id" value="<?php echo $attendee_id; ?>" />
 												<td><input type="text" required name="tc_first_name[]" id="tc_first_name" value="<?php echo $first_name; ?>" /></td>
 												<td><input type="text" required name="tc_last_name[]" id="tc_last_name" value="<?php echo $last_name; ?>" /></td>
-												<td><input type="text" name="tc_owner_phone[]" id="tc_owner_phone" value="<?php echo $owner_phone; ?>" /></td>
 												<td><input type="email" required name="tc_owner_email[]" id="tc_owner_email" value="<?php echo $owner_email; ?>" /></td>
 											<?php } else { ?>
 												<td><?php echo $first_name ;?></td>
 												<td><?php echo $last_name ;?></td>
-												<td><?php echo $owner_phone ;?></td>
 												<td><?php echo $owner_email ;?></td>
 											<?php } ?>
 										</tr>
@@ -100,7 +95,7 @@
 								if( $editable > 0 ) {
 									?>
 										<tr>
-											<td colspan="8" align="center">
+											<td colspan="7" align="center">
 												<input type="hidden" name="tctoken" id="tctoken" value="<?php echo $token;?>" />
 												<input type="hidden" name="tc_order_id" id="tc_order_id" value="<?php echo $order_id;?>" />
 												<input type="hidden" name="tc_pro_id" id="tc_pro_id" value="<?php echo $pid;?>" />

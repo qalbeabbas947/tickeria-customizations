@@ -318,14 +318,12 @@ class Tickera_Customization {
 		$tc_attendee_id = $_REQUEST['tc_attendee_id'];
 		$tc_first_name 	= $_REQUEST['tc_first_name'];
 		$tc_last_name 	= $_REQUEST['tc_last_name'];
-		$tc_email 		= $_REQUEST['tc_owner_email'];
-		$tc_owner_phone = $_REQUEST['tc_owner_phone'];
+		$tc_email 	= $_REQUEST['tc_owner_email'];
 		$tctoken 		= $_REQUEST['tctoken'];
 
 		if( empty( $tctoken ) || 
-			( !is_array( $tc_owner_phone ) || count( $tc_owner_phone ) < 1 ) || 
 			( !is_array( $tc_first_name ) || count( $tc_first_name ) < 1 ) || 
-			( !is_array( $tc_last_name ) || count( $tc_last_name ) < 1 ) || 
+			( !is_array( $tc_first_name ) || count( $tc_first_name ) < 1 ) || 
 			( !is_array( $tc_email ) || count( $tc_email ) < 1 ) ) {
 
 			echo json_encode( ['status'=>'failed', 'message' => 'Fields can not be empty'] );
@@ -344,8 +342,7 @@ class Tickera_Customization {
 			foreach( $tc_attendee_id as $key => $aid ) {
 
 				if( !empty( $tc_first_name[$key] ) && !empty( $tc_last_name[$key] ) && is_email( $tc_email[$key] ) ) {
-					
-					update_post_meta( $tc_attendee_id[$key], 'tc_ff_phonenumber_tcfn_5013', sanitize_text_field( $tc_owner_phone[$key] ) );
+
 					update_post_meta( $tc_attendee_id[$key], 'first_name', sanitize_text_field( $tc_first_name[$key] ) );
 					update_post_meta( $tc_attendee_id[$key], 'last_name', sanitize_text_field( $tc_last_name[$key] ) );
 					update_post_meta( $tc_attendee_id[$key], 'owner_email', sanitize_email( $tc_email[$key] ) );
